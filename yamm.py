@@ -34,7 +34,7 @@ def search(mdb, args):
         for x in mdb.search(args.extra):
             print "%s - %s" % (x.mod.name, x.mod.description)
 
-def update(mdb, throwaway):
+def update(mdb, args):
     mdb.update_services()
 
 def info(mdb, args):
@@ -45,9 +45,8 @@ def info(mdb, args):
     print "Download URL : %s" % mod.get_url()
     depends = mod.get_dependency_mods()
     if depends:
-        print "Depends on:"
-        for x in depends:
-            print " %s | %s" % (x.mod.name, x.get_url())
+        print "Requires:"
+        print "  " + ", ".join(x.mod.name for x in depends)
 
 def download(mdb, args):
     mod = mdb.get_module(args.extra)
@@ -73,14 +72,27 @@ def download(mdb, args):
     for i, m in enumerate(downloadlist):
         path = os.path.join(args.dldir, m.mod.filename)
         print " Downloading %s [%s/%s]" % (m.mod.name, i+1, len(downloadlist))
-        urllib.urlretrieve(m.get_url(), path, minihook)
-        print ""    
+        if os.path.exists(path):
+            print "  File already exists, skipping", 
+        else:
+            urllib.urlretrieve(m.get_url(), path, minihook)
+        print ""
+        if not m.check_file(path, True):
+            print "  !WARNING! File for '%s' seem to be corrupted!" % m.mod.name
+        
+def show_filedata(mdb, args):
+    print {
+        "filehash": moddb.create_filehash(args.extra),
+        "filesize": os.stat(args.extra).st_size,
+    }
+
 F = {
     "add" : addservice,
     "search": search,
     "update": update,
     "show": info,
     "download": download,
+    "filedata": show_filedata,
 }
 
 def main():

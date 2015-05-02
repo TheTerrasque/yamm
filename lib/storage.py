@@ -1,4 +1,5 @@
 from utility.peewee import *
+import random
 
 db = SqliteDatabase('mods.db')
 
@@ -23,7 +24,7 @@ class ModService(BaseModel):
         return self.mirrors.split("|")
     
     def get_mirror(self):
-        return self.active_mirror or self.get_mirrors()[0]
+        return self.active_mirror or random.choice(self.get_mirrors())
 
 class ModEntry(BaseModel):
     name = CharField(index=True)
@@ -31,6 +32,10 @@ class ModEntry(BaseModel):
     version = CharField(null=True)
     service = ForeignKeyField(ModService)
     filename = CharField(null=True)
+    filehash = CharField(null=True)
+    filesize = IntegerField(null=True)
+    homepage = CharField(null=True)
+    author = CharField(null=True)
 
 DEPENDENCY = [
     (0, "Requires"),

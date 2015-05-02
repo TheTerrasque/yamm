@@ -3,6 +3,23 @@ import json
 import urllib
 import logging
 
+import hashlib
+
+hasher = hashlib.sha256
+BLOCKSIZE = 65536
+
+def create_filehash(path):
+    """
+    Return Base64 hash of file at path
+    """
+    h = hasher()
+    with open(path, "rb") as f:
+        buf = f.read(BLOCKSIZE)
+        while len(buf) > 0:
+            h.update(buf)
+            buf = f.read(BLOCKSIZE)
+    return h.digest().encode("base64").strip().strip("=")
+
 L = logging.getLogger("moddb")
 
 class ModInstance(object):
@@ -15,26 +32,51 @@ class ModInstance(object):
     def __unicode__(self):
         return self.mod.name
     
+    def check_file(self, path, approve_if_no_dbhash=False):
+        """
+        Check file against hash in DB, return True or False
+        If hash fails it will return False unless approve_if_no_dbhash is set to True
+        """
+        if self.mod.filehash:
+            h = create_filehash(path)
+            return h == self.mod.filehash
+        return approve_if_no_dbhash
+    
     def get_url(self):
+        """
+        Return download url for mod archive
+        """
         return self.mod.service.get_mirror() + self.mod.filename
     
     def get_dependency_info(self, relation=0):
+        """
+        Return list of dependency keywords
+        """
         return [x.dependency for x in ModDependency.select().where(ModDependency.mod==self.mod, ModDependency.relation == relation)]
     
     def resolve_dependencies(self, recommended=False):
         depmods = set()
         deps = self.get_dependency_info()
+        
         if recommended:
             deps = deps + self.get_dependency_info(3)
+        
         for dep in self.get_dependency_info():
+            # FIXME this will fail if two mods can resolve the same dependency
+            # Ideally the user should be notified and make a choice
             entry = ModDependency.get(relation = 1, dependency=dep)
             m = entry.mod
+        
             depmods.add(m.id)
             i = ModInstance(m.id, m)
             depmods.update(i.resolve_dependencies(recommended))
+            
         return depmods
     
     def get_dependency_mods(self, recommended=False):
+        """
+        Return list of mods that are required for this mod to work
+        """
         return [ModInstance(x) for x in self.resolve_dependencies(recommended)]
 
 def get_json(url):
@@ -107,7 +149,7 @@ class ServiceUpdater(object):
         modentry.service = self.service
         
         # Optional entries
-        for field in ["description"]:
+        for field in ["description", "filehash", "filesize", "homepage", "author"]:
             if mod.get(field):
                 setattr(modentry, field, mod[field])
         
