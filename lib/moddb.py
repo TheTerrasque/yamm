@@ -50,6 +50,7 @@ class ModDb(object):
         service.set_mirrors(data["service"]["filelocations"])
         service.save()
         L.info("Service %s added", service.name)
+        return service
     
     def get_module(self, modulename):
         e = ModEntry.get(name=modulename)
