@@ -1,0 +1,64 @@
+{
+    "mods":[
+        {
+            "name": "SexLab",
+            "version": "1.59c",
+            "depends": [
+               "FNIS",
+               "SKSE",
+               "SkyUI",
+               "UnofficialSkyrimPatch"
+            ],
+            "homepage": "someurl/files/file/150-skyrim-sexlab-sex-animation-framework-v159c-updated-oct-3rd/",
+            "filename": "SexLabFramework.v159c.7z",
+            "description": "Sex Animation Framework"
+        },
+        {
+            "name": "SkyUI",
+            "version": "4.1",
+            "description": "SkyUI is a mod that aims to improve Skyrim's User Interface by making it easier to use with mouse and keyboard, less wasteful of available screen space, and nicer to look at.",
+            "depends": [
+               "SKSE"
+            ],
+            "filename": "SkyUI_4_1-3863-4-1.7z"
+        },
+        {
+            "name": "SKSE",
+            "version": "1.7.1",
+            "description": "Skyrim Script Extender",
+            "filename": "skse_1_07_01.7z"
+        },
+        {
+            "name": "FNIS",
+            "version": "5.4.1",
+            "description": "Fores New Idles in Skyrim",
+            "filename": "FNIS Behavior V5_2 -- ALWAYS necessary-11811-5-2.7z"
+        },
+        {
+            "name": "UnofficialSkyrimPatch",
+            "version": "24/04/2015",
+            "description": "The Unofficial Skyrim Patch",
+            "filename": "Unofficial Skyrim Patch-19-2-0-8a.7z"
+        },
+        {
+            "name": "Defeat",
+            "version": "5b3.3",
+            "description": "Defeat test mod",
+            "filename": "Defeat V5b3.3fixed.rar",
+            "depends": [
+               "SexLab"
+            ],
+            "recommend": [
+                "DeviousCapture",
+                "ZazAnimationPack",
+                "DeathAlternative"
+            ]
+        }
+    ],
+    "service": {
+        "filelocations": [
+            "http://terra.thelazy.net/yamm/files/"
+        ],
+        "name": "YAMM Test repo"
+    }
+}
