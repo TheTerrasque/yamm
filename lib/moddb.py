@@ -2,6 +2,7 @@ from storage import ModEntry, ModDependency, ModService, db
 import json
 import urllib
 import logging
+from collections import defaultdict
 
 import hashlib
 
@@ -22,6 +23,32 @@ def create_filehash(path):
 
 L = logging.getLogger("moddb")
 
+class ModDependencies(object):
+    def __init__(self):
+        self.depmap = defaultdict(list)
+
+    def add_dependency(self, tag, provider, relation, source):
+        self.depmap[tag].append((provider, source, relation))
+
+    def simple_get_mods(self, relation):
+        """
+        Return a simplified mod list with no subtlety nor finesse
+        """
+        l = []
+        for dep in self.depmap:
+            #Filter required only, then select first provider
+            filtered_deplist = self._filter(self.depmap[dep], relation)
+            if filtered_deplist:
+                l.append( filtered_deplist[0][0] ) 
+        return l
+    
+    def _filter(self, deplist, relation):
+        r = []
+        for dep in deplist:
+            if dep[2] == relation:
+                r.append(dep)
+        return r
+        
 class ModInstance(object):
     def __init__(self, mod_id, instance=None):
         if instance:
@@ -54,32 +81,43 @@ class ModInstance(object):
         """
         return [x.dependency for x in ModDependency.select().where(ModDependency.mod==self.mod, ModDependency.relation == relation)]
     
-    def resolve_dependencies(self, recommended=False):
-        depmods = set()
-        deps = self.get_dependency_info()
+    def resolve_dependencies(self, relation = 0, depsObject = None):
+        """
+        Recursively resolve dependencies
+        """
         
-        if recommended:
-            deps = deps + self.get_dependency_info(3)
+        if not depsObject:
+            depsObject = ModDependencies()
         
-        for dep in self.get_dependency_info():
+        deps = self.get_dependency_info(relation)
+        
+        for dep in deps:
             # FIXME this will fail if two mods can resolve the same dependency
             # Ideally the user should be notified and make a choice
-            entry = ModDependency.get(relation = 1, dependency=dep)
-            m = entry.mod
-        
-            depmods.add(m.id)
-            i = ModInstance(m.id, m)
-            depmods.update(i.resolve_dependencies(recommended))
+            entries = ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == dep)
             
-        return depmods
+            if not entries.count():
+                L.warn("Could not resolve dependency for %s", dep)
+            
+            for entry in entries:
+                m = entry.mod
+                
+                i = ModInstance(m.id, m)
+                
+                depsObject.add_dependency(dep, i, relation, self)
+                
+                i.resolve_dependencies(depsObject=depsObject)
+            
+        return depsObject
     
-    def get_dependency_mods(self, recommended=False):
+    def get_dependency_mods(self):
         """
         Return list of mods that are required for this mod to work
         """
-        return [ModInstance(x) for x in self.resolve_dependencies(recommended)]
+        return self.resolve_dependencies().simple_get_mods(0)
 
 def get_json(url):
+    # FIXME: Gzip? Etag?
     d = urllib.urlopen(url)
     data = json.load(d)
     return data
@@ -181,4 +219,4 @@ class ServiceUpdater(object):
             self.set_dependency_relation(modentry, mod.get("depends", []), 0)                       # Requires
             self.set_dependency_relation(modentry, [modentry.name] + mod.get("provides", []), 1)    # Provides
             self.set_dependency_relation(modentry, mod.get("conflict", []), 2)                      # In conflict with
-            self.set_dependency_relation(modentry, mod.get("recommend", []), 3)                     # Recommends
+            self.set_dependency_relation(modentry, mod.get("recommends", []), 3)                     # Recommends
