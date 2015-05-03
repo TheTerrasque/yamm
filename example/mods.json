@@ -122,6 +122,16 @@
             "filename": "DeviousDevices-Integration-2.9.0.rar"
         },
         {
+            "name": "HdtHighHeels",
+            "version": "beta0.5",
+            "category": "framework",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/36213/?",
+            "depends": [
+               "SKSE"
+            ],
+            "filename": "hdtHighHeel_beta0_5-36213-beta0-5.7z"
+        },
+        {
             "name": "DeviousDevices",
             "version": "2.90",
             "category": "framework",
@@ -132,6 +142,19 @@
             ],
             "filename": "DDa.rar"
         },
+        {
+            "name": "DeviousDevices-expansion",
+            "version": "1.2.1",
+            "category": "framework",
+            "description": "DDx is an add-on content pack for the Devious Devices family of mods, it's purpose, outside of adding more content for us all to play with, is largely as a framework",
+            "homepage": "http://www.loverslab.com/files/file/1305-devious-devices-expansion-v121/",
+            "depends": [
+               "HdtHighHeels",
+               "DeviousDevices",
+               "DeviousDevices-integration"
+            ],
+            "filename": "DDx-v121.7z"
+        },        
         {
             "name": "CBBE",
             "version": "3.3b",
@@ -163,10 +186,46 @@
             "depends": [
                "DeviousDevices-integration",
                "DeviousDevices",
+               "DeviousDevices-expansion",
                "ZazAnimationPack",
-               "SexLab"
+               "SexLab",
+               "HdtHighHeels"
+            ],
+            "recommends": [
+                "SlaveTats"
             ],
             "filename": "qayl_0_3_0_0.7z"
+        },
+        {
+            "name": "SlaveTats",
+            "version": "1.1",
+            "homepage": "http://www.loverslab.com/files/file/619-slavetats/",
+            "description": "The tattoo toolkit for Skyrim",
+            "depends": [
+               "JContainers",
+               "RaceMenu",
+               "SkyUI",
+               "SKSE"
+            ],
+            "filename": "SlaveTats-1.1.7z"
+        },
+        {
+            "name": "RaceMenu",
+            "version": "3.2.0",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/29624/?",
+            "description": "The RaceMenu was redesigned with the intention of using SKSE to allow for more in-depth customization of your character",
+            "filename": "RaceMenu v3-2-0-29624-3-2-0.7z"
+        },
+        {
+            "name": "JContainers",
+            "version": "3.2.3",
+            "category": "framework",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/49743/?",
+            "description": "JContainers is a modding framework that extends Papyrus by implemented basic data structures",
+            "depends": [
+                "SKSE"
+            ],
+            "filename": "JContainers-49743-3-2-3.zip"
         },
         {
             "name": "FuzRoDoh",

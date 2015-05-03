@@ -45,7 +45,9 @@ class ModDependencies(object):
             #Filter required only, then select first provider
             filtered_deplist = self._filter(self.depmap[dep], relation)
             if filtered_deplist:
-                l.append( filtered_deplist[0][0] ) 
+                l.append( filtered_deplist[0][0] )
+                
+        return sorted(l, key=lambda x: x.mod.name)
         return l
     
     def _filter(self, deplist, relation):
@@ -116,11 +118,11 @@ class ModInstance(object):
             
         return depsObject
     
-    def get_dependency_mods(self):
+    def get_dependency_mods(self, modtype=0):
         """
         Return list of mods that are required for this mod to work
         """
-        return self.resolve_dependencies().simple_get_mods(0)
+        return self.resolve_dependencies().simple_get_mods(modtype)
 
 def get_json(url, etag=None):
     class NotModifiedHandler(urllib2.BaseHandler):

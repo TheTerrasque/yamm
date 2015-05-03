@@ -20,7 +20,6 @@ def download_modules(modulelist):
     
 class DownloadModules:
    
-    
     def __init__(self, master, modlist):
         self.mods = modlist
         self.setup_widgets(master)
@@ -35,7 +34,9 @@ class DownloadModules:
             self.modsbox.insert(tK.END, "[00%%]   %-30s  (%s)" % (mod.mod.name, mod.mod.filesize or "N/A"))
         
     def setup_widgets(self, master):
-        master.title("Module Download")
+        master.title("Modules Download Window")
+        master.minsize(width=400,  height=500)
+        
         frame = tK.Frame(master)
         frame.pack(fill=tK.BOTH, expand=1)
         
@@ -137,7 +138,7 @@ class ModuleInfo:
     
         if dependslist:
             #d = "Requires: %s" % ", ".join(x.mod.name for x in dependslist)
-            description.insert(tK.END, "\n\nRequires: " )
+            description.insert(tK.END, "\n\nRequires: \n  " )
             for m in dependslist:
                 tag = "a" + str(m.mod.id)
                 description.tag_config(tag, underline=1)
@@ -161,6 +162,8 @@ class Search:
         master.after(20,self.set_default_services)
 
     def setup_widgets_search(self, master):
+        master.minsize(width=300,  height=500)
+        
         frame = tK.Frame(master)
         frame.pack(fill=tK.X)
 
