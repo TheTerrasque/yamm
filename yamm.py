@@ -40,9 +40,18 @@ def update(mdb, args):
 
 def info(mdb, args):
     mod = mdb.get_module(args.extra)
+    if not mod:
+        print "Could not find mod '%s' in the database. Perhaps try search or update" % args.extra
+        return
     print mod.mod.name
-    print mod.mod.description
-    print "Version %s" % mod.mod.version
+    print "-" * len(mod.mod.name)
+    print mod.mod.description + "\n"
+    
+    for field in ["author", "homepage", "version", "updated", "category", "filesize"]:
+        val = getattr(mod.mod, field)
+        if val:
+            print "%s: %s" % (field.capitalize(), val)
+    
     print "Download URL : %s" % mod.get_url()
     depends = mod.get_dependency_mods()
     if depends:

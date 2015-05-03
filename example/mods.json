@@ -17,6 +17,7 @@
         {
             "name": "SkyUI",
             "version": "4.1",
+            "category": "UI",
             "description": "SkyUI is a mod that aims to improve Skyrim's User Interface by making it easier to use with mouse and keyboard, less wasteful of available screen space, and nicer to look at",
             "depends": [
                "SKSE"
@@ -26,21 +27,27 @@
         {
             "name": "SKSE",
             "version": "1.7.1",
+            "homepage": "http://skse.silverlock.org/",
             "category": "framework",
-            "description": "Skyrim Script Extender",
+            "description": "The Skyrim Script Extender, or SKSE for short, is a modder's resource that expands the scripting capabilities of Skyrim. It does so without modifying the executable files on disk, so there are no permanent side effects",
             "filename": "skse_1_07_01.7z"
         },
         {
             "name": "FNIS",
             "version": "5.2",
             "category": "framework",
-            "description": "Fores New Idles in Skyrim",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/11811/",
+            "description": "Fores New Idles in Skyrim - FNIS Behaviors allows other mods to add different types of animations to the game: idles/poses, sequenced, arm offset, furniture, and paired animations, killmoves, and creature animations",
             "filename": "FNIS Behavior V5_2 -- ALWAYS necessary-11811-5-2.7z"
         },
         {
             "name": "UIExtensions",
             "version": "1.2.0",
             "category": "framework",
+            "depends": [
+               "SKSE"
+            ],
+            "homepage": "http://www.nexusmods.com/skyrim/mods/57046/",
             "description": "This mod adds several custom menus meant for modder and user use",
             "filename": "UIExtensions v1-2-0-57046-1-2-0.7z"
         },
@@ -54,13 +61,16 @@
         {
             "name": "UnofficialSkyrimPatch",
             "version": "24/04/2015",
-            "description": "The Unofficial Skyrim Patch",
+            "category": "bugfix",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/19",
+            "description": "A comprehensive bugfixing mod for The Elder Scrolls V: Skyrim, the goal of the Unofficial Skyrim Patch (aka USKP) is to eventually fix every bug with Skyrim not officially resolved by the developers to the limits of the Creation Kit and community-developed tools, in one easy-to-install package.",
             "filehash": "+IlyWuj8T6DpGYrsRlEbaYmwIfErSqzK8H4pzyfW42g",
             "filename": "Unofficial Skyrim Patch-19-2-0-8a.7z"
         },
         {
             "name": "Defeat",
             "version": "5.0.1",
+            "category": "combat",
             "description": "Defeat aim to give more combat outcomes and alternatives to death, whether the player is the victim, the aggressor or not even involved",
             "filename": "SexLab - Defeat V5.0.1.rar",
             "filehash": "6OozPGGOnH75SmuFgmZJYh4btDncYZvuftLvQoEEDyY",
@@ -147,6 +157,7 @@
         {
             "name": "QuickAsYouLike",
             "version": "0.3.0.0",
+            "category": "quest",
             "homepage": "http://www.loverslab.com/files/file/1180-quick-as-you-like-a-devious-adventure/",
             "description": "Quick As You Like is a cross-country survival mod with elements of player slavery, and humilation",
             "depends": [
@@ -183,16 +194,63 @@
         },
         {
             "name": "SDplus",
-            "version": "6.0",
-            "homepage": "http://www.nexusmods.com/skyrim/mods/14884/?",
+            "version": "3.1.5a",
+            "homepage": "http://www.loverslab.com/files/file/503-sd-sanguine-debauchery-enhanced-2015-04-18/",
             "description": "Sanguine Debauchery+ is a mod that subjects the player to enslavement as an alternative to death. Being enslaved by the opponents that defeat you in combat offers the player interesting story tangents and, above all, a continuous narrative in place of death and a reload screen",
             "depends": [
                "DeathAlternative",
                "SexLab",
-               "DeviousDevices-integration"
+               "DeviousDevices-integration",
+               "XPMS"
             ],
             "filename": "SDPlus315a.7z"
-        }
+        },
+        {
+            "name": "SexLabDialogues",
+            "version": "1.9",
+            "category": "framework",
+            "homepage": "http://www.loverslab.com/files/file/1540-sexlab-dialogues-2015-04-18/",
+            "description": "SL Dialogues is a new companion resource for mods that need dialogues for relationships between the player and NPC",
+            "depends": [
+               "ZazAnimationPack",
+               "SexLab",
+               "SexLabAroused",
+               "CBBE"
+            ],
+            "filename": "SLDialogues19.7z"
+        },
+        {
+            "name": "XPMS",
+            "version": "1.94",
+            "category": "framework",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/26800/?",
+            "description": "XP32 Maximum Skeleton. A multi purpose skeleton for animation in skyrim. Include New skeleton structure",
+            "depends": [
+               "RealisticForce"
+            ],
+            "filename": "XPMS 1.94 NMM-BAIN INSTALLER-26800-1-94.7z"
+        },
+        {
+            "name": "RealisticForce",
+            "version": "1.9",
+            "category": "framework",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/601/?",
+            "description": "Realistic Ragdolls and Force. Reduces the extra force applied on ragdolls to a more reasonable level and replaces ragdolls so that they bend and twist realistically and fall at a faster velocity. Increase friction to fix ice-like ragdoll sliding",
+            "filename": "Realistic Force-601-1-9.rar"
+        },
+        {
+            "name": "DeviouslyHelpless",
+            "version": "1.15d",
+            "depends": [
+               "SexLab",
+               "DeviousDevices-integration",
+               "SexLabAroused",
+               "ZazAnimationPack"
+            ],            
+            "homepage": "http://www.loverslab.com/files/file/829-deviously-helpless/",
+            "description": "If enemies see you coming too close to them helpless, they'll just straight up rape you instead of even bothering to attack. This is based on what Devious devices you're wearing",
+            "filename": "Deviously Helpless 1.15d.7z"
+        }         
     ],
     "service": {
         "filelocations": [

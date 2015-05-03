@@ -1,4 +1,4 @@
-from storage import ModEntry, ModDependency, ModService, db
+from storage import ModEntry, ModDependency, ModService, db, get_mod_by_name
 import json
 import urllib2
 import logging
@@ -164,8 +164,9 @@ class ModDb(object):
         return service
     
     def get_module(self, modulename):
-        e = ModEntry.get(name=modulename)
-        return ModInstance(e.id, e)    
+        e = get_mod_by_name(modulename)
+        if e:
+            return ModInstance(e.id, e)
     
     def get_services(self):
         return ModService.select()
@@ -176,6 +177,17 @@ class ModDb(object):
                 updater = ServiceUpdater(service)
                 updater.update()
                 L.info("%s: %s new, %s updated", service.name, updater.new, updater.updated)
+    
+    def get_module_count(self):
+        return ModEntry.select().count()
+    
+    def get_modules_not_in_category(self, category="framework"):
+        """
+        Return all modules *not* in the given category
+        """
+        d = ModEntry.select().where((ModEntry.category.is_null(True)) | (ModEntry.category != category))
+        print d.count()
+        return [ModInstance(x.id, x) for x in d]
     
     def search(self, text):
         d = ModEntry.select().where(

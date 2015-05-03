@@ -51,9 +51,15 @@ class ModDependency(BaseModel):
     mod = ForeignKeyField(ModEntry)
     dependency = CharField(index = True)
     relation = IntegerField(choices = DEPENDENCY)
-    
+
+def get_mod_by_name(name):
+    try:
+        return ModEntry.get(name=name)
+    except DoesNotExist:
+        return None
+
 def create_tables():
     db.connect()
-    db.create_tables([Settings, ModEntry, ModService, ModDependency],  safe=True)
+    db.create_tables([ModEntry, ModService, ModDependency],  safe=True)
 
 create_tables()
