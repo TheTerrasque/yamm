@@ -20,17 +20,26 @@ either dynamically on request or static on updates.
 
 Example use:
 
-python yamm.py add "http://terra.thelazy.net/yamm/mods.json"
-python yamm.py update
-
-python yamm.py search ui
-python yamm.py search defeat
-python yamm.py show SkyUI
-python yamm.py show Defeat
-
-python yamm.py download Defeat
+    # Build index and initialize DB
+    python yamm.py add "http://terra.thelazy.net/yamm/mods.json"
+    python yamm.py update
+    
+    python yamm.py search ui
+    python yamm.py search defeat
+    python yamm.py show SkyUI
+    python yamm.py show Defeat
+    
+    python yamm.py download Defeat
 
 -----------------------
 
 Actual mod installataion / management not included,
 since goal is to have MO do that.
+
+-----------------------
+
+Troubleshooting:
+
+    If something doesn't work:
+     - Ensure you have the latest code
+     - Delete mods.db and rebuild index
