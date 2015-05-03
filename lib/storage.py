@@ -16,6 +16,7 @@ class ModService(BaseModel):
     url = CharField(unique=True)
     mirrors = TextField()
     active_mirror = CharField(null=True)
+    etag = CharField(null=True)
     
     def set_mirrors(self, mirrorlist):
         self.mirrors = "|".join(mirrorlist)
@@ -31,11 +32,13 @@ class ModEntry(BaseModel):
     description = TextField(null=True)
     version = CharField(null=True)
     service = ForeignKeyField(ModService)
+    category = CharField(null=True)
     filename = CharField(null=True)
     filehash = CharField(null=True)
     filesize = IntegerField(null=True)
     homepage = CharField(null=True)
     author = CharField(null=True)
+    updated = DateTimeField(null=True)
 
 DEPENDENCY = [
     (0, "Requires"),

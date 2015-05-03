@@ -22,12 +22,13 @@ def create_argparse():
 
 def addservice(mdb, args):
     if args.extra:
-        try:
-            # "http://terra.thelazy.net/yamm/mods.json"
-            s = mdb.add_service(args.extra)
+
+        # "http://terra.thelazy.net/yamm/mods.json"
+        s = mdb.add_service(args.extra)
+        if s:
             print "Added service provider %s" % s.name
-        except:
-            logging.info("Could not add service (already added?)")
+        else:
+            print "Service already added"
 
 def search(mdb, args):
     if args.extra:

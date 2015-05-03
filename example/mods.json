@@ -3,6 +3,7 @@
         {
             "name": "SexLab",
             "version": "1.59c",
+            "category": "framework",
             "depends": [
                "FNIS",
                "SKSE",
@@ -21,18 +22,34 @@
                "SKSE"
             ],
             "filename": "SkyUI_4_1-3863-4-1.7z"
-        },
+        },  
         {
             "name": "SKSE",
             "version": "1.7.1",
+            "category": "framework",
             "description": "Skyrim Script Extender",
             "filename": "skse_1_07_01.7z"
         },
         {
             "name": "FNIS",
-            "version": "5.4.1",
+            "version": "5.2",
+            "category": "framework",
             "description": "Fores New Idles in Skyrim",
             "filename": "FNIS Behavior V5_2 -- ALWAYS necessary-11811-5-2.7z"
+        },
+        {
+            "name": "UIExtensions",
+            "version": "1.2.0",
+            "category": "framework",
+            "description": "This mod adds several custom menus meant for modder and user use",
+            "filename": "UIExtensions v1-2-0-57046-1-2-0.7z"
+        },
+        {
+            "name": "FNIS-creature",
+            "version": "5.1",
+            "category": "framework",
+            "description": "Fores New Idles in Skyrim - Creature Pack",
+            "filename": "FNIS Creature Pack 5_1-11811-5-1.7z"
         },
         {
             "name": "UnofficialSkyrimPatch",
@@ -47,14 +64,134 @@
             "description": "Defeat aim to give more combat outcomes and alternatives to death, whether the player is the victim, the aggressor or not even involved",
             "filename": "SexLab - Defeat V5.0.1.rar",
             "filehash": "6OozPGGOnH75SmuFgmZJYh4btDncYZvuftLvQoEEDyY",
+            "homepage": "http://www.loverslab.com/files/file/286-defeat-v501/",
             "depends": [
-               "SexLab"
+               "SexLab",
+               "UIExtensions"
             ],
             "recommends": [
                 "DeviousCapture",
                 "ZazAnimationPack",
                 "DeathAlternative"
             ]
+        },
+        {
+            "name": "ZazAnimationPack",
+            "version": "6.00",
+            "category": "framework",
+            "description": "The ZaZ Animation Pack is a Master Mod to so many Independent Mods on LoversLab",
+            "homepage": "http://www.loverslab.com/files/file/156-zaz-animation-pack-2015-02-10/",
+            "depends": [
+               "FNIS",
+               "SexLab",
+               "ZazAnimationPack-textures"
+            ],
+            "filename": "ZazAnimationPack_Main_V0600.7z"
+        },
+        {
+            "name": "ZazAnimationPack-textures",
+            "version": "6.00",
+            "category": "framework",
+            "description": "The ZaZ Animation Pack is a Master Mod to so many Independent Mods on LoversLab. This contains the texture pack",
+            "depends": [
+               "ZazAnimationPack"
+            ],
+            "filename": "ZazAnimationPack_Textures_V0600.7z"
+        },
+        {
+            "name": "DeviousDevices-integration",
+            "version": "2.90",
+            "category": "framework",
+            "description": "Devious Devices - Assets Integration",
+            "depends": [
+               "ZazAnimationPack",
+               "SexLab",
+               "DeviousDevices",
+               "SexLabAroused"
+            ],
+            "filename": "DeviousDevices-Integration-2.9.0.rar"
+        },
+        {
+            "name": "DeviousDevices",
+            "version": "2.90",
+            "category": "framework",
+            "description": "This is a collection of BDSM-themed gear and devices for the CBBE 3.2.3 (Curvy) & UNP v1.2 female body, with additional tweaks for the UNP v1.2 (Skinny) body and UNP HDT-PE-TBBP 5.01 body included",
+            "homepage": "http://www.loverslab.com/files/file/269-devious-devices-assets/",
+            "depends": [
+               "CBBE"
+            ],
+            "filename": "DDa.rar"
+        },
+        {
+            "name": "CBBE",
+            "version": "3.3b",
+            "category": "framework",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/2666",
+            "description": "This is a Skyrim body replacer that replaces the base female body with one that is a little more curvaceous",
+            "filename": "Caliente's Beautiful Bodies Edition v3.3b-2666-3-3b.7z"
+        },
+        {
+            "name": "SexLabAroused",
+            "version": "2014-01-24",
+            "category": "framework",
+            "homepage": "http://www.loverslab.com/topic/20193-wip-sexlab-aroused-v2014-01-24/",
+            "description": "The mod is sub-framework for SexLab that adds simple model of sexual needs to Skyrim",
+            "depends": [
+               "SKSE",
+               "SkyUI",
+               "FNIS",
+               "SexLab"
+            ],
+            "filename": "SexLab_Aroused_v20140124.zip"
+        },
+        {
+            "name": "QuickAsYouLike",
+            "version": "0.3.0.0",
+            "homepage": "http://www.loverslab.com/files/file/1180-quick-as-you-like-a-devious-adventure/",
+            "description": "Quick As You Like is a cross-country survival mod with elements of player slavery, and humilation",
+            "depends": [
+               "DeviousDevices-integration",
+               "DeviousDevices",
+               "ZazAnimationPack",
+               "SexLab"
+            ],
+            "filename": "qayl_0_3_0_0.7z"
+        },
+        {
+            "name": "FuzRoDoh",
+            "version": "6.0",
+            "category": "framework",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/14884/?",
+            "description": "This mod basically enhances support for unvoiced in-game dialog",
+            "depends": [
+               "SKSE"
+            ],
+            "filename": "Fuz Ro Doh 60-14884-6-0.zip"
+        },
+        {
+            "name": "DeathAlternative",
+            "version": "6.1.8",
+            "category": "framework",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/45894/?",
+            "description": "To offer a narrative of the player character's adventures that include defeat and failures, and increase the active role of the NPCs that populate Skyrim",
+            "depends": [
+               "FuzRoDoh",
+               "SkyUI",
+               "SKSE"
+            ],
+            "filename": "Death Alternative - Your Money Or Your Life-45894-6-1-8.7z"
+        },
+        {
+            "name": "SDplus",
+            "version": "6.0",
+            "homepage": "http://www.nexusmods.com/skyrim/mods/14884/?",
+            "description": "Sanguine Debauchery+ is a mod that subjects the player to enslavement as an alternative to death. Being enslaved by the opponents that defeat you in combat offers the player interesting story tangents and, above all, a continuous narrative in place of death and a reload screen",
+            "depends": [
+               "DeathAlternative",
+               "SexLab",
+               "DeviousDevices-integration"
+            ],
+            "filename": "SDPlus315a.7z"
         }
     ],
     "service": {

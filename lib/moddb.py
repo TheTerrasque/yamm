@@ -1,9 +1,10 @@
 from storage import ModEntry, ModDependency, ModService, db
 import json
-import urllib
+import urllib2
 import logging
 from collections import defaultdict
 
+import datetime
 import hashlib
 
 hasher = hashlib.sha256
@@ -26,9 +27,14 @@ L = logging.getLogger("moddb")
 class ModDependencies(object):
     def __init__(self):
         self.depmap = defaultdict(list)
+        self.sources_seen = set() #Loop prevention
 
     def add_dependency(self, tag, provider, relation, source):
+        self.sources_seen.add(source.mod.id)
         self.depmap[tag].append((provider, source, relation))
+
+    def mod_already_handled(self, mod_id):
+        return mod_id in self.sources_seen    
 
     def simple_get_mods(self, relation):
         """
@@ -101,12 +107,12 @@ class ModInstance(object):
             
             for entry in entries:
                 m = entry.mod
-                
-                i = ModInstance(m.id, m)
-                
-                depsObject.add_dependency(dep, i, relation, self)
-                
-                i.resolve_dependencies(depsObject=depsObject)
+                if not depsObject.mod_already_handled(m.id):
+                    i = ModInstance(m.id, m)
+                    
+                    depsObject.add_dependency(dep, i, relation, self)
+                    
+                    i.resolve_dependencies(depsObject=depsObject)
             
         return depsObject
     
@@ -116,15 +122,40 @@ class ModInstance(object):
         """
         return self.resolve_dependencies().simple_get_mods(0)
 
-def get_json(url):
-    # FIXME: Gzip? Etag?
-    d = urllib.urlopen(url)
-    data = json.load(d)
-    return data
+def get_json(url, etag=None):
+    class NotModifiedHandler(urllib2.BaseHandler):
+  
+        def http_error_304(self, req, fp, code, message, headers):
+            addinfourl = urllib2.addinfourl(fp, headers, req.get_full_url())
+            addinfourl.code = code
+            return addinfourl
+
+    opener = urllib2.build_opener(NotModifiedHandler())
+
+    req = urllib2.Request(url)
+    
+    if etag:
+        req.add_header("If-None-Match", etag)
+
+    url_handle = opener.open(req)
+
+    headers = url_handle.info()
+
+    etag = headers.getheader("ETag")
+
+    if hasattr(url_handle, 'code') and url_handle.code == 304:
+        return None, None
+        
+    # FIXME: Gzip?
+    data = json.load(url_handle)
+    
+    return data, etag
 
 class ModDb(object):
     def add_service(self, json_url):
-        data = get_json(json_url)
+        if ModService.select().where(ModService.url==json_url).count():
+            return None
+        data, etag = get_json(json_url)
         service = ModService(url=json_url)
         service.name = data["service"]["name"]
         service.set_mirrors(data["service"]["filelocations"])
@@ -159,9 +190,10 @@ class ServiceUpdater(object):
     
     # PeeWee related class functions
 
-    def update_service_data(self, data):
+    def update_service_data(self, data, etag):
         """Update the service info from JSON data"""
         self.service.name = data["service"]["name"]
+        self.service.etag = etag
         self.service.set_mirrors(data["service"]["filelocations"])
         self.service.save()
 
@@ -181,20 +213,27 @@ class ServiceUpdater(object):
     def save_mod_instance(self, mod):
         """Create or update a mod instance in DB"""
         modentry, created = ModEntry.get_or_create(name=mod["name"], service=self.service)
-            
+        
+        if created:
+            self.new += 1
+            modentry.updated = datetime.datetime.now()
+        else:
+            if modentry.version != mod["version"]:
+                modentry.updated = datetime.datetime.now()
+                self.updated += 1
+                    
         modentry.version = mod["version"]
         modentry.filename = mod["filename"]
         modentry.service = self.service
         
         # Optional entries
-        for field in ["description", "filehash", "filesize", "homepage", "author"]:
+        for field in ["description", "filehash", "filesize", "homepage", "author", "category"]:
             if mod.get(field):
                 setattr(modentry, field, mod[field])
         
         modentry.save()
         
         return modentry, created
-    
 
     # Normal class functions
     
@@ -202,19 +241,15 @@ class ServiceUpdater(object):
         self.service = service
 
     def update(self):
-        data = get_json(self.service.url)
-        self.update_service_data(data)
-        self.update_mods(data["mods"])
+        data, etag = get_json(self.service.url, self.service.etag)
+        if data:
+            self.update_service_data(data, etag)
+            self.update_mods(data["mods"])
         
     def update_mods(self, modlist):
 
         for mod in modlist:
             modentry, new_entry = self.save_mod_instance(mod)
-            
-            if new_entry:
-                self.new += 1
-            else:
-                self.updated += 1
             
             self.set_dependency_relation(modentry, mod.get("depends", []), 0)                       # Requires
             self.set_dependency_relation(modentry, [modentry.name] + mod.get("provides", []), 1)    # Provides
