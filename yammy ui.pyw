@@ -7,6 +7,8 @@ import urllib
 from threading import Thread
 from Queue import Queue
 
+from lib.utils import get_filesize_display
+
 mdb = moddb.ModDb()
 DLDIR = "files/"
 
@@ -31,7 +33,7 @@ class DownloadModules:
         self.DLTHREAD.start()
         
         for mod in modlist:
-            self.modsbox.insert(tK.END, "[00%%]   %-30s  (%s)" % (mod.mod.name, mod.mod.filesize or "N/A"))
+            self.modsbox.insert(tK.END, "[00%%]   %-30s  (%s)" % (mod.mod.name, mod.mod.filesize and get_filesize_display(mod.mod.filesize) or "N/A"))
         
     def setup_widgets(self, master):
         master.title("Modules Download Window")
@@ -56,12 +58,10 @@ class DownloadModules:
     def start_download(self):
         
         def minihook(dl, totalsize, percent, modnum):
-            dlkb = dl / 1024
-            totalkb = totalsize / 1024
-            self.set_line(modnum, "[%02d%%]  %s  (%skb/%skb)" % (percent, self.mods[modnum].mod.name, dlkb, totalkb))
+            self.set_line(modnum, "[%02d%%]  %s  (%s/%s)" % (percent, self.mods[modnum].mod.name, get_filesize_display(dl), get_filesize_display(totalsize)))
             #print "\r  %s%% - %s kb / %s kb" % (percent, dlkb, totalkb),
 
-        def completehook(active):
+        def completehook(active, path):
             self.set_line(active, "[\o/]  %s - Completed" % (self.mods[active].mod.name))
             if not self.mods[active].check_file(path, True):
                 self.set_line(active, "[/o\]  %s - %s" % (m.mod.name, "File is damaged"))
@@ -95,7 +95,7 @@ def dlfile(queue):
             hook(dl, totalsize, percent, active)
             
         urllib.urlretrieve(url, path, mahook)
-        endhook(active)
+        endhook(active, path)
 
 class ModuleInfo:
     
