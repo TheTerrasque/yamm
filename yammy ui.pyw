@@ -6,6 +6,8 @@ import os
 import urllib
 from threading import Thread
 from Queue import Queue
+import logging
+L = logging.getLogger("YAMM.YammiUI")
 
 from lib.utils import get_filesize_display
 
@@ -19,19 +21,46 @@ def show_mod_window(mod):
 def download_modules(modulelist):
     top = tK.Toplevel()
     DownloadModules(top, modulelist)
+
+def dlfile(queue):
+    def handle_next_entry():
+        mod, path, hook, active, completehook, overwrite =  queue.get()
+        msg = ""
+        
+        def mahook(count, blocksize, totalsize):
+            if count % 5 != 0:
+                return
+            dl = count * blocksize
+            percent = int(( float(dl) / totalsize) * 100)
+            hook(dl, totalsize, percent, active)
+        
+        if not overwrite and os.path.exists(path):
+                msg = "[-o-]  %s - Already downloaded"
+                if not mod.check_file(path, True):
+                    msg = "[/o\]  %s - File is damaged"
+        else:
+            urllib.urlretrieve(mod.get_url(), path, mahook)
+            msg = "[\o/]  %s - Completed"
+        completehook(active, path, msg)
+    
+    while True:
+        handle_next_entry()
+
+DLQUEUE = Queue()
+DLTHREADS = []
+for x in range(2):
+    DLTHREAD = Thread(target=dlfile, args = (DLQUEUE, ))
+    DLTHREAD.daemon = True
+    DLTHREAD.start()
     
 class DownloadModules:
    
     def __init__(self, master, modlist):
         self.mods = modlist
         self.setup_widgets(master)
+        self.master = master
         
-        self.DLQUEUE = Queue()
-        
-        self.DLTHREAD = Thread(target=dlfile, args = (self.DLQUEUE, ))
-        self.DLTHREAD.daemon = True
-        self.DLTHREAD.start()
-        
+
         for mod in modlist:
             self.modsbox.insert(tK.END, "[00%%]   %-30s  (%s)" % (mod.mod.name, mod.mod.filesize and get_filesize_display(mod.mod.filesize) or "N/A"))
         
@@ -56,46 +85,21 @@ class DownloadModules:
         self.modsbox.insert(lineno, value)
     
     def start_download(self):
+
+        if not os.path.exists(DLDIR):
+            os.mkdir(DLDIR)
         
         def minihook(dl, totalsize, percent, modnum):
             self.set_line(modnum, "[%02d%%]  %s  (%s/%s)" % (percent, self.mods[modnum].mod.name, get_filesize_display(dl), get_filesize_display(totalsize)))
             #print "\r  %s%% - %s kb / %s kb" % (percent, dlkb, totalkb),
 
-        def completehook(active, path):
-            self.set_line(active, "[\o/]  %s - Completed" % (self.mods[active].mod.name))
-            if not self.mods[active].check_file(path, True):
-                self.set_line(active, "[/o\]  %s - %s" % (m.mod.name, "File is damaged"))
+        def completehook(active, path, message):
+            self.set_line(active, message % self.mods[active].mod.name)
 
-        if not os.path.exists(DLDIR):
-            print "Creating download folder '%s'" % DLDIR
-            os.mkdir(DLDIR)
-            
         for i, m in enumerate(self.mods):
-            
             path = os.path.join(DLDIR, m.mod.filename)
-            #print " Downloading %s [%s/%s]" % (m.mod.name, i+1, len(self.mods))
-            
-            if os.path.exists(path):
-                self.set_line(i, "[-o-]  %s - %s" % (m.mod.name, "Already downloaded"))
-                if not m.check_file(path, True):
-                    self.set_line(i, "[/o\]  %s - %s" % (m.mod.name, "File is damaged"))
-            else:
-                d = [m.get_url(), path, minihook, i, completehook]
-                self.DLQUEUE.put(d)
-
-def dlfile(queue):
-    while True:
-        url, path, hook, active, endhook =  queue.get()
-        
-        def mahook(count, blocksize, totalsize):
-            if count % 5 != 0:
-                return
-            dl = count * blocksize
-            percent = int(( float(dl) / totalsize) * 100)
-            hook(dl, totalsize, percent, active)
-            
-        urllib.urlretrieve(url, path, mahook)
-        endhook(active, path)
+            d = [m, path, minihook, i, completehook, False]
+            DLQUEUE.put(d)
 
 class ModuleInfo:
     
@@ -110,14 +114,14 @@ class ModuleInfo:
     def setup_widgets(self, master):
         master.title("Module %s" % self.mod.mod.name)
         frame = tK.Frame(master)
-        frame.pack(fill=tK.BOTH)
+        frame.pack(fill=tK.BOTH, expand=1)
         
         title = tK.Label(frame, text="%s v%s" % (self.mod.mod.name, self.mod.mod.version))
         title.pack()
         
         description = tK.Text(frame)
         description.insert(tK.END, self.mod.mod.description)
-        description.pack()
+        description.pack(expand=1, fill=tK.BOTH)
         
         if self.mod.mod.homepage:
             description.tag_config("homepage", underline=1)
@@ -135,16 +139,28 @@ class ModuleInfo:
         description.config(cursor="arrow")
         
         dependslist = self.mod.get_dependency_mods()
-    
-        if dependslist:
-            #d = "Requires: %s" % ", ".join(x.mod.name for x in dependslist)
-            description.insert(tK.END, "\n\nRequires: \n  " )
-            for m in dependslist:
-                tag = "a" + str(m.mod.id)
-                description.tag_config(tag, underline=1)
-                description.tag_bind(tag, "<Button-1>", click(m))
+        wantslist = self.mod.get_dependency_mods(3)
+        for modlist, maintext in ( (dependslist, "Requires"), (wantslist, "Recommends")):
+            if modlist["mods"]:
+                #d = "Requires: %s" % ", ".join(x.mod.name for x in dependslist)
+                description.insert(tK.END, "\n\n%s: \n  " % maintext)
+                for m in modlist["mods"]:
+                    tag = "a" + str(m.mod.id)
+                    description.tag_config(tag, underline=1)
+                    description.tag_bind(tag, "<Button-1>", click(m))
+                    description.insert(tK.END, m.mod.name, tag)
+                    description.insert(tK.END, ", ")
+            
+            if modlist["unknown"]:
+                #d = "Requires: %s" % ", ".join(x.mod.name for x in dependslist)
+                tag = "unk"
+                description.tag_config(tag)
                 description.insert(tK.END, m.mod.name, tag)
-                description.insert(tK.END, ", ")
+                
+                description.insert(tK.END, "\n\n%s (Unknown): \n  " % maintext)
+                for m in modlist["unknown"]:
+                    description.insert(tK.END, m, tag)
+                    description.insert(tK.END, ", ")
             
         description.config(state=tK.DISABLED, wrap=tK.WORD)
         

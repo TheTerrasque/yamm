@@ -53,7 +53,7 @@ def info(mdb, args):
             print "%s: %s" % (field.capitalize(), val)
     
     print "Download URL : %s" % mod.get_url()
-    depends = mod.get_dependency_mods()
+    depends = mod.get_dependency_mods()["mods"]
     if depends:
         print "Requires:"
         print "  " + ", ".join(x.mod.name for x in depends)

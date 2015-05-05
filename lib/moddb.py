@@ -22,7 +22,7 @@ def create_filehash(path):
             buf = f.read(BLOCKSIZE)
     return h.digest().encode("base64").strip().strip("=")
 
-L = logging.getLogger("moddb")
+L = logging.getLogger("YAMM.moddb")
 
 class ModDependencies(object):
     def __init__(self):
@@ -36,6 +36,18 @@ class ModDependencies(object):
     def mod_already_handled(self, mod_id):
         return mod_id in self.sources_seen    
 
+    def simple_unknown_deps(self, relation=0):
+        l = []
+        for dep in self.depmap:
+            #Filter required only, then select first provider
+            filtered_deplist = self._filter(self.depmap[dep], relation)
+            if filtered_deplist and not filtered_deplist[0][0]:
+                l.append( dep )
+                
+        return sorted(l)
+        return l
+    
+
     def simple_get_mods(self, relation):
         """
         Return a simplified mod list with no subtlety nor finesse
@@ -44,7 +56,7 @@ class ModDependencies(object):
         for dep in self.depmap:
             #Filter required only, then select first provider
             filtered_deplist = self._filter(self.depmap[dep], relation)
-            if filtered_deplist:
+            if filtered_deplist and filtered_deplist[0][0]:
                 l.append( filtered_deplist[0][0] )
                 
         return sorted(l, key=lambda x: x.mod.name)
@@ -58,6 +70,8 @@ class ModDependencies(object):
         return r
         
 class ModInstance(object):
+    DEPS = None
+    
     def __init__(self, mod_id, instance=None):
         if instance:
             self.mod = instance
@@ -105,6 +119,7 @@ class ModInstance(object):
             entries = ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == dep)
             
             if not entries.count():
+                depsObject.add_dependency(dep, None, relation, self)
                 L.warn("Could not resolve dependency for %s", dep)
             
             for entry in entries:
@@ -116,13 +131,19 @@ class ModInstance(object):
                     
                     i.resolve_dependencies(depsObject=depsObject)
             
-        return depsObject
+        return depsObject  
     
-    def get_dependency_mods(self, modtype=0):
+    def get_dependency_mods(self, relation=0):
         """
         Return list of mods that are required for this mod to work
         """
-        return self.resolve_dependencies().simple_get_mods(modtype)
+        if not self.DEPS:
+            self.DEPS = self.resolve_dependencies(relation)
+        
+        return {
+            "mods": self.DEPS.simple_get_mods(relation),
+            "unknown": self.DEPS.simple_unknown_deps(relation),
+        }
 
 def get_json(url, etag=None):
     class NotModifiedHandler(urllib2.BaseHandler):
@@ -188,7 +209,7 @@ class ModDb(object):
         Return all modules *not* in the given category
         """
         d = ModEntry.select().where((ModEntry.category.is_null(True)) | (ModEntry.category != category))
-        print d.count()
+        L.debug("There a re %s modules not in category %s", d.count(),  category)
         return [ModInstance(x.id, x) for x in d]
     
     def search(self, text):
