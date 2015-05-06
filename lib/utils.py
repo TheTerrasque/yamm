@@ -15,3 +15,4 @@ def get_filesize_display(size):
         size /= BYTES
         if size < BYTES:
             return '{0:.1f} {1}'.format(size, suffix)
+        
