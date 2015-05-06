@@ -23,22 +23,6 @@ def initialize_uimodules():
     global DLQUEUE
     DLQUEUE = start_download_threads()
 
-class SplashScreen:
-   def __init__( self ):
-        pass
-      
-   def __enter__( self ):
-      # Create the splash screen      
-      self._splash = tK.Toplevel()
-      tK.Label( self._splash, text="Loading database", cursor='watch' ).pack( )
-      # Force Tk to draw the splash screen outside of mainloop()
-      self._splash.update( )
-   
-   def __exit__( self, exc_type, exc_value, traceback ):
-     
-      # Destroy the splash window
-      self._splash.destroy( )    
-
 class DownloadModules:
    
     def __init__(self, master, modlist, downloaddir="files/"):
