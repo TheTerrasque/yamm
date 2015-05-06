@@ -10,10 +10,13 @@ import logging
 L = logging.getLogger("YAMM.YammiUI")
 
 def main():    
-    root = tK.Tk()
     initialize_uimodules()
+    
+    root = tK.Tk()
     app = Search(root, mdb)
     root.mainloop()
+    
+    # Usually the root is already destroyed by now (X button to close window)
     try:
         root.destroy()
     except:

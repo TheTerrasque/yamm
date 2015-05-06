@@ -7,6 +7,11 @@ from collections import defaultdict
 import datetime
 import hashlib
 
+from StringIO import StringIO
+import gzip
+
+L = logging.getLogger("YAMM.moddb")
+
 hasher = hashlib.sha256
 BLOCKSIZE = 65536
 
@@ -22,7 +27,45 @@ def create_filehash(path):
             buf = f.read(BLOCKSIZE)
     return h.digest().encode("base64").strip().strip("=")
 
-L = logging.getLogger("YAMM.moddb")
+def get_json(url, etag=None):
+    class NotModifiedHandler(urllib2.BaseHandler):
+  
+        def http_error_304(self, req, fp, code, message, headers):
+            addinfourl = urllib2.addinfourl(fp, headers, req.get_full_url())
+            addinfourl.code = code
+            return addinfourl
+
+    opener = urllib2.build_opener(NotModifiedHandler())
+
+    req = urllib2.Request(url)
+    
+    if etag:
+        req.add_header("If-None-Match", etag)
+
+    req.add_header('Accept-encoding', 'gzip')
+
+    url_handle = opener.open(req)
+
+    headers = url_handle.info()
+    
+    if headers.get("Content-Encoding") == "gzip":
+        buf = StringIO( url_handle.read() )
+        L.info("GZIP response")
+        f = gzip.GzipFile(fileobj=buf)
+        jdata = f
+    else:
+        L.debug("Uncompressed response")
+        jdata = url_handle
+
+    etag = headers.getheader("ETag")
+
+    if hasattr(url_handle, 'code') and url_handle.code == 304:
+        return None, None
+        
+    # FIXME: Gzip?
+    data = json.load(jdata)
+    
+    return data, etag
 
 class ModDependencies(object):
     def __init__(self):
@@ -144,35 +187,6 @@ class ModInstance(object):
             "mods": self.DEPS.simple_get_mods(relation),
             "unknown": self.DEPS.simple_unknown_deps(relation),
         }
-
-def get_json(url, etag=None):
-    class NotModifiedHandler(urllib2.BaseHandler):
-  
-        def http_error_304(self, req, fp, code, message, headers):
-            addinfourl = urllib2.addinfourl(fp, headers, req.get_full_url())
-            addinfourl.code = code
-            return addinfourl
-
-    opener = urllib2.build_opener(NotModifiedHandler())
-
-    req = urllib2.Request(url)
-    
-    if etag:
-        req.add_header("If-None-Match", etag)
-
-    url_handle = opener.open(req)
-
-    headers = url_handle.info()
-
-    etag = headers.getheader("ETag")
-
-    if hasattr(url_handle, 'code') and url_handle.code == 304:
-        return None, None
-        
-    # FIXME: Gzip?
-    data = json.load(url_handle)
-    
-    return data, etag
 
 class ModDb(object):
     def add_service(self, json_url):
