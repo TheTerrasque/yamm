@@ -60,7 +60,7 @@ def info(mdb, args):
 
 def download(mdb, args):
     mod = mdb.get_module(args.extra)
-    depends = mod.get_dependency_mods()
+    depends = mod.get_dependency_mods()["mods"]
     downloadlist = [mod] + depends
     
     if depends:
