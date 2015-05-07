@@ -1,4 +1,5 @@
 import Tkinter as tK
+import tkMessageBox
 from .utils import get_filesize_display
 import os
 from .thread_workers import start_download_threads
@@ -13,8 +14,9 @@ def open_window(module, data):
     return module
 
 CALLBACK = {
-    "showmod": lambda x: open_window(ModuleInfo, [x]),
-    "downloadmod": lambda x: open_window(DownloadModules, [x]),
+    "showmod": lambda mod: open_window(ModuleInfo, [mod]),
+    "downloadmod": lambda modlist: open_window(DownloadModules, [modlist]),
+    "services": lambda mdb: open_window(ServiceList, [mdb]),
 }
 
 DLQUEUE = None
@@ -22,6 +24,50 @@ DLQUEUE = None
 def initialize_uimodules():
     global DLQUEUE
     DLQUEUE = start_download_threads()
+
+class ServiceList:
+    def __init__(self, master, mdb):
+        self.mdb = mdb
+        self.master = master
+        self.setup_widgets(master)
+        self.show_services()
+
+    def setup_widgets(self, master):
+        master.title("YAMM Services")
+        master.minsize(width=300,  height=500)
+
+        frame = tK.Frame(master)
+        frame.pack(fill=tK.BOTH, expand=1)
+        
+        title = tK.Label(frame, text="Active services")
+        title.pack(fill=tK.X)
+        
+        self.servicebox = tK.Listbox(frame)
+        self.servicebox.pack(fill=tK.BOTH, expand=1)
+        
+        tK.Button(frame, text="Add service", command=self.add_service).pack(side=tK.LEFT)
+        tK.Button(frame, text="Remove service", command=self.remove_service).pack(side=tK.LEFT)
+        
+
+    def add_service(self):
+        tkMessageBox.showinfo("Not implemented", "Not implemented yet. \nPlease use command line client yamm.py to add a service")
+    
+    def remove_service(self):
+        for index in self.servicebox.curselection():
+            service = self.services[index]
+            if tkMessageBox.askyesno("Remove service", "Are you sure you want to remove the service '%s'?" % service.name):
+                service.delete()
+                break
+        self.show_services()
+
+    def show_services(self):
+        self.servicebox.delete(0, tK.END)
+        self.services = self.mdb.get_services()
+        
+        for service in self.services:
+            #show_mod_window(mod)
+            self.servicebox.insert(tK.END, service.name)
+    
 
 class DownloadModules:
    
@@ -169,6 +215,9 @@ class Search:
         self.button_search = tK.Button(frame, text="Search", command=self.do_search)
         self.button_search.pack(side=tK.LEFT)
         
+        self.button_search = tK.Button(frame, text="Services", command=self.show_services)
+        self.button_search.pack(side=tK.LEFT)
+        
         frame2 = tK.Frame(master)
         frame2.pack(fill=tK.BOTH, expand=1)
         
@@ -176,6 +225,10 @@ class Search:
         self.modsbox.pack(fill=tK.BOTH, expand=1)
         
         self.modsbox.bind("<Double-Button-1>", self.show_module)
+
+    def show_services(self):
+        CALLBACK["services"](self.mod_db)
+    
 
     def setup_widgets(self, master):
 
