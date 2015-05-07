@@ -30,9 +30,8 @@ class DownloadModules:
         self.mods = modlist
         self.setup_widgets(master)
         self.master = master
-        
 
-        for mod in modlist:
+        for mod in self.mods:
             self.modsbox.insert(tK.END, "[00%%]   %-30s ( %s )" % (mod.mod.name, mod.mod.filesize and get_filesize_display(mod.mod.filesize) or "N/A"))
         
     def setup_widgets(self, master):
@@ -111,29 +110,26 @@ class ModuleInfo:
         description.tag_bind("a", "<Button-1>", click)
         description.config(cursor="arrow")
         
-        dependslist = self.mod.get_dependency_mods()
-        wantslist = self.mod.get_dependency_mods(3)
-        for modlist, maintext in ( (dependslist, "Requires"), (wantslist, "Recommends")):
-            if modlist["mods"]:
+        deps, recommends = self.get_modlist()
+        
+        for modlist, maintext in ( (deps, "Requires"), (recommends, "Recommends")):
+            if modlist:
                 #d = "Requires: %s" % ", ".join(x.mod.name for x in dependslist)
                 description.insert(tK.END, "\n\n%s: \n  " % maintext)
-                for m in modlist["mods"]:
-                    tag = "a" + str(m.mod.id)
-                    description.tag_config(tag, underline=1)
-                    description.tag_bind(tag, "<Button-1>", click(m))
-                    description.insert(tK.END, m.mod.name, tag)
-                    description.insert(tK.END, ", ")
-            
-            if modlist["unknown"]:
-                #d = "Requires: %s" % ", ".join(x.mod.name for x in dependslist)
-                tag = "unk"
-                description.tag_config(tag)
-                description.insert(tK.END, m.mod.name, tag)
                 
-                description.insert(tK.END, "\n\n%s (Unknown): \n  " % maintext)
-                for m in modlist["unknown"]:
-                    description.insert(tK.END, m, tag)
-                    description.insert(tK.END, ", ")
+                unknown = "unk"
+                description.tag_config(unknown)
+                
+                for tag, m in modlist:
+                    if m:
+                        tag = "a" + str(m.mod.id)
+                        description.tag_config(tag, underline=1)
+                        description.tag_bind(tag, "<Button-1>", click(m))
+                        description.insert(tK.END, m.mod.name, tag)
+                        description.insert(tK.END, ", ")
+                    else:          
+                        description.insert(tK.END, tag+"?", unknown)
+                        description.insert(tK.END, ", ")
             
         description.config(state=tK.DISABLED, wrap=tK.WORD)
         
@@ -141,12 +137,15 @@ class ModuleInfo:
         dlbutton.pack(fill=tK.X)
     
     def get_modlist(self):
-        r = [self.mod] + self.mod.get_dependency_mods()["mods"]
-        return r
+        depslist = self.mod.get_dependencies().dependencies
+        deps = [(k, x.get_provider()) for k, x in depslist.items() if x.required_by]
+        recommends = [(k, x.get_provider()) for k, x in depslist.items() if x.recommended_by]
+        return [deps, recommends]
     
     def start_download(self):
-        modlist = self.get_modlist()
-        CALLBACK["downloadmod"](modlist)
+        modlist = self.get_modlist()[0]
+        dlmods = [self.mod] + [x[1] for x in modlist if x[1]]
+        CALLBACK["downloadmod"](dlmods)
          
 class Search:
     modmap = []

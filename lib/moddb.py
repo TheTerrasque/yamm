@@ -9,53 +9,91 @@ from utils import create_filehash, get_json
 
 L = logging.getLogger("YAMM.moddb")
 
+MOD_CACHE = {}
+def get_modentry(mod_id, db_instance = None):
+    if not mod_id in MOD_CACHE:
+        MOD_CACHE[mod_id] = ModInstance(mod_id, db_instance)
+    return MOD_CACHE[mod_id]
+
 class ModDependencies(object):
-    def __init__(self):
-        self.depmap = defaultdict(list)
-        self.sources_seen = set() #Loop prevention
+    def __init__(self, mod):
+        self.mod = mod
+        self.scan_mod()
 
-    def add_dependency(self, tag, provider, relation, source):
-        self.sources_seen.add(source.mod.id)
-        self.depmap[tag].append((provider, source, relation))
-
-    def mod_already_handled(self, mod_id):
-        return mod_id in self.sources_seen    
-
-    def simple_unknown_deps(self, relation=0):
-        l = []
-        for dep in self.depmap:
-            #Filter required only, then select first provider
-            filtered_deplist = self._filter(self.depmap[dep], relation)
-            if filtered_deplist and not filtered_deplist[0][0]:
-                l.append( dep )
-                
-        return sorted(l)
-        return l
-    
-
-    def simple_get_mods(self, relation):
-        """
-        Return a simplified mod list with no subtlety nor finesse
-        """
-        l = []
-        for dep in self.depmap:
-            #Filter required only, then select first provider
-            filtered_deplist = self._filter(self.depmap[dep], relation)
-            if filtered_deplist and filtered_deplist[0][0]:
-                l.append( filtered_deplist[0][0] )
-                
-        return sorted(l, key=lambda x: x.mod.name)
-        return l
-    
-    def _filter(self, deplist, relation):
-        r = []
-        for dep in deplist:
-            if dep[2] == relation:
-                r.append(dep)
-        return r
+    def get_mods_providing(self, tag):
+        return [get_modentry(x.mod.id, x.mod) for x in ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == tag)]
         
+    def scan_mod(self):
+        class ModDepEntry(object):
+            def __init__(self):
+                self.required_by = set()
+                self.provided_by = set()
+                self.conflicts_with = set()
+                self.recommended_by = set()
+        
+            def get_provider(self):
+                """
+                Return a provider for this entry, or None if none are fund
+                """
+                if self.provided_by:
+                    return list(self.provided_by)[0]
+        
+            def add_relation(self, mod, relation):
+                entrylist = [self.required_by, self.provided_by, self.conflicts_with, self.recommended_by][relation]
+                entrylist.add(mod)
+        
+            def add_providers(self, providerlist):
+                self.provided_by.update(providerlist)
+                
+            def update(self, dep_entry):
+                self.required_by.update(dep_entry.required_by)
+                self.provided_by.update(dep_entry.provided_by)
+                self.conflicts_with.update(dep_entry.conflicts_with)
+                self.recommended_by.update(dep_entry.recommended_by)
+                
+            def display(self):
+                return "Required by %s, provided by %s, recommended by %s" % (self.required_by, self.provided_by, self.recommended_by)
+            
+        depmap = defaultdict(ModDepEntry)
+        
+        for i, name in enumerate(["Requires", "Provides", "Conflicts", "Recommends"]):
+            dep_tags = self.mod.get_dependency_tags(i)
+            for tag in dep_tags:
+                providers = self.get_mods_providing(tag)
+                
+                depmap[tag].add_providers(providers)
+                depmap[tag].add_relation(self.mod, i)
+                
+                for provider in providers:
+                    if provider.VISITED:
+                        continue
+                    provider.VISITED = True
+                    d = provider.get_dependencies()
+                    for key in d.dependencies:
+                        depmap[key].update(d.dependencies[key])
+        self.dependencies = depmap
+
+    def get_required_mods(self):
+        """
+        Return dict where "mods" key is list of mods that are required for this mod and
+        "unknown" is list of unresolved tags
+        """
+        mods = []
+        unknowntags = []
+        for key, value in self.dependencies.items():
+            if value.required_by:
+                if value.provided_by:
+                    mods.append(list(value.provided_by)[0]) #Pick random'ish if more than one.
+                else:
+                    unknowntags.append((key, value))
+        return {"mods":sorted(mods, key= lambda x: x.mod.name), "unknown": unknowntags}
+
 class ModInstance(object):
     DEPS = None
+    VISITED = False
+    
+    def __repr__(self):
+        return u"<Mod:%s>" % self.mod.name
     
     def __init__(self, mod_id, instance=None):
         if instance:
@@ -82,54 +120,17 @@ class ModInstance(object):
         """
         return self.mod.service.get_mirror() + self.mod.filename
     
-    def get_dependency_info(self, relation=0):
+    def get_dependency_tags(self, relation=0):
         """
         Return list of dependency keywords
         """
         return [x.dependency for x in ModDependency.select().where(ModDependency.mod==self.mod, ModDependency.relation == relation)]
     
-    def resolve_dependencies(self, relation = 0, depsObject = None):
-        """
-        Recursively resolve dependencies
-        """
-        
-        if not depsObject:
-            depsObject = ModDependencies()
-        
-        deps = self.get_dependency_info(relation)
-        
-        for dep in deps:
-            # FIXME this will fail if two mods can resolve the same dependency
-            # Ideally the user should be notified and make a choice
-            entries = ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == dep)
-            
-            if not entries.count():
-                depsObject.add_dependency(dep, None, relation, self)
-                L.warn("Could not resolve dependency for %s", dep)
-            
-            for entry in entries:
-                m = entry.mod
-                if not depsObject.mod_already_handled(m.id):
-                    i = ModInstance(m.id, m)
-                    
-                    depsObject.add_dependency(dep, i, relation, self)
-                    
-                    i.resolve_dependencies(depsObject=depsObject)
-            
-        return depsObject  
-    
-    def get_dependency_mods(self, relation=0):
-        """
-        Return list of mods that are required for this mod to work
-        """
+    def get_dependencies(self):
         if not self.DEPS:
-            self.DEPS = self.resolve_dependencies(relation)
-        
-        return {
-            "mods": self.DEPS.simple_get_mods(relation),
-            "unknown": self.DEPS.simple_unknown_deps(relation),
-        }
-
+            self.DEPS = ModDependencies(self)
+        return self.DEPS
+    
 class ModDb(object):
     def add_service(self, json_url):
         if ModService.select().where(ModService.url==json_url).count():
@@ -145,7 +146,7 @@ class ModDb(object):
     def get_module(self, modulename):
         e = get_mod_by_name(modulename)
         if e:
-            return ModInstance(e.id, e)
+            return get_modentry(e.id, e)
     
     def get_services(self):
         return ModService.select()
@@ -166,14 +167,14 @@ class ModDb(object):
         """
         d = ModEntry.select().where((ModEntry.category.is_null(True)) | (ModEntry.category != category))
         L.debug("There a re %s modules not in category %s", d.count(),  category)
-        return [ModInstance(x.id, x) for x in d]
+        return [get_modentry(x.id, x) for x in d]
     
     def search(self, text):
         d = ModEntry.select().where(
              (ModEntry.description.contains(text)) |
              (ModEntry.name.contains(text))
             )
-        return [ModInstance(x.id, x) for x in d]
+        return [get_modentry(x.id, x) for x in d]
     
 class ServiceUpdater(object):
     new = 0
@@ -246,3 +247,4 @@ class ServiceUpdater(object):
             self.set_dependency_relation(modentry, [modentry.name] + mod.get("provides", []), 1)    # Provides
             self.set_dependency_relation(modentry, mod.get("conflict", []), 2)                      # In conflict with
             self.set_dependency_relation(modentry, mod.get("recommends", []), 3)                     # Recommends
+        MOD_CACHE.clear()

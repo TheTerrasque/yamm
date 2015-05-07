@@ -19,7 +19,6 @@ def create_argparse():
     args = parser.parse_args()
     return args
 
-
 def addservice(mdb, args):
     if args.extra:
 
@@ -53,18 +52,22 @@ def info(mdb, args):
             print "%s: %s" % (field.capitalize(), val)
     
     print "Download URL : %s" % mod.get_url()
-    depends = mod.get_dependency_mods()["mods"]
-    if depends:
+    depends = mod.get_dependencies().get_required_mods()
+    
+    if depends["mods"]:
         print "Requires:"
-        print "  " + ", ".join(x.mod.name for x in depends)
-
+        print " " + ", ".join([x.mod.name for x in depends["mods"]])
+    if depends["unknown"]:
+        print "Unknown mod requirements:"
+        print " " + ", ".join([x.mod.name for x in depends["unknown"]])
+        
 def download(mdb, args):
     mod = mdb.get_module(args.extra)
-    depends = mod.get_dependency_mods()["mods"]
-    downloadlist = [mod] + depends
+    depends = mod.get_dependencies().get_required_mods()
+    downloadlist = [mod] + depends["mods"]
     
     if depends:
-        print "Mod '%s' depends on : %s"% (mod.mod.name, ', '.join(x.mod.name for x in depends) )
+        print "Mod '%s' depends on : %s"% (mod.mod.name, ', '.join(x.mod.name for x in downloadlist) )
     
     def minihook(count, blocksize, totalsize):
         dl = count * blocksize
