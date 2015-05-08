@@ -1,5 +1,6 @@
 import Tkinter as tK
 import tkMessageBox
+import tkSimpleDialog
 from .utils import get_filesize_display
 import os
 from .thread_workers import start_download_threads
@@ -24,6 +25,7 @@ DLQUEUE = None
 def initialize_uimodules():
     global DLQUEUE
     DLQUEUE = start_download_threads()
+
 
 class ServiceList:
     def __init__(self, master, mdb):
@@ -50,7 +52,14 @@ class ServiceList:
         
 
     def add_service(self):
-        tkMessageBox.showinfo("Not implemented", "Not implemented yet. \nPlease use command line client yamm.py to add a service")
+        service = tkSimpleDialog.askstring("Add service", "Service URL", parent=self.master)
+        if service:
+            try:
+                self.mdb.add_service(service)
+            except Exception as e:
+                tkMessageBox.showerror("Problem adding service", u"Could not add service! \n\nError: %s" % unicode(e))
+            self.show_services()
+        #tkMessageBox.showinfo("Not implemented", "Not implemented yet. \nPlease use command line client yamm.py to add a service")
     
     def remove_service(self):
         for index in self.servicebox.curselection():
@@ -67,8 +76,8 @@ class ServiceList:
         for service in self.services:
             #show_mod_window(mod)
             self.servicebox.insert(tK.END, service.name)
-    
 
+    
 class DownloadModules:
    
     def __init__(self, master, modlist, downloaddir="files/"):
@@ -118,6 +127,7 @@ class DownloadModules:
             path = os.path.join(self.downloaddir, m.mod.filename)
             d = [m, path, minihook, i, completehook, False]
             DLQUEUE.put(d)
+
             
 class ModuleInfo:
     
@@ -192,6 +202,7 @@ class ModuleInfo:
         modlist = self.get_modlist()[0]
         dlmods = [self.mod] + [x[1] for x in modlist if x[1]]
         CALLBACK["downloadmod"](dlmods)
+
          
 class Search:
     modmap = []
@@ -229,7 +240,6 @@ class Search:
     def show_services(self):
         CALLBACK["services"](self.mod_db)
     
-
     def setup_widgets(self, master):
 
         master.title("YAMMy UI")
@@ -250,7 +260,6 @@ class Search:
 
     def update_data(self, fetch=True):
         self.mod_db.update_services()
-        
         self.status.set("%s modules in database" % self.mod_db.get_module_count())
         self.list_modules(self.mod_db.get_modules_not_in_category("framework"))
 
