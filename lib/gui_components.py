@@ -6,8 +6,11 @@ import os
 from .thread_workers import start_download_threads
 import webbrowser
 
+import mo_rpc
+
 import logging
 L = logging.getLogger("YAMM.YammiUI.TK")
+
 
 def open_window(module, data):
     top = tK.Toplevel()
@@ -18,6 +21,7 @@ CALLBACK = {
     "showmod": lambda mod: open_window(ModuleInfo, [mod]),
     "downloadmod": lambda modlist: open_window(DownloadModules, [modlist]),
     "services": lambda mdb: open_window(ServiceList, [mdb]),
+    "download_complete": lambda mod: mod,
 }
 
 DLQUEUE = None
@@ -105,6 +109,16 @@ class DownloadModules:
         self.button_dl = tK.Button(frame, text="Start download", command=self.start_download)
         self.button_dl.pack(fill=tK.X)
     
+        v = tK.IntVar()
+        self.mo_checkbox = tK.Checkbutton(frame, text="Install in Mod Organizer after download", var=v, command=self.check_mo)
+        self.mo_checkbox.var = v
+        self.mo_checkbox.pack(fill=tK.X)
+    
+    def check_mo(self):
+        if self.mo_checkbox.var.get() and not mo_rpc.ping():
+            tkMessageBox.showerror("Connection error","Could not connect to Mod Organizer\n\nMake sure it's running and that the YAMM plugin is installed")
+            self.mo_checkbox.deselect()
+    
     def set_line(self, lineno, value):
         self.modsbox.delete(lineno)
         self.modsbox.insert(lineno, value)
@@ -122,13 +136,16 @@ class DownloadModules:
 
         def completehook(active, path, message):
             self.set_line(active, message % self.mods[active].mod.name)
+            
+            if self.mo_checkbox.var.get() and mo_rpc.ping():
+                mo_rpc.rpc.install_mod(path)
 
         for i, m in enumerate(self.mods):
             path = os.path.join(self.downloaddir, m.mod.filename)
             d = [m, path, minihook, i, completehook, False]
             DLQUEUE.put(d)
 
-            
+
 class ModuleInfo:
     
     def __init__(self, master, mod):

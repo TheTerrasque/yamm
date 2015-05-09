@@ -9,10 +9,16 @@ import gzip
 
 import json
 
+import os.path
+
 L = logging.getLogger("YAMM.utils")
 
 hasher = hashlib.sha256
 BLOCKSIZE = 65536
+
+
+def get_base_path():
+    return os.path.dirname(os.path.dirname(__file__))
 
 
 # Credits: http://stackoverflow.com/questions/1714027/version-number-comparison
