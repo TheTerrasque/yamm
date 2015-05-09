@@ -11,11 +11,9 @@
 ##
 
 # qt5
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtWrapperType, pyqtSlot, pyqtSignal, QTimer
-from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtWidgets import QDialog, QHeaderView, QMessageBox, QColorDialog, QTreeWidgetItem,\
-    QComboBox, QPushButton, QDoubleSpinBox, QHBoxLayout, QWidget, QSlider, QSpinBox, QLineEdit
+from PyQt5 import QtGui
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QMessageBox
 
 if "mobase" not in sys.modules:
     import mock_mobase as mobase
@@ -90,9 +88,6 @@ class RpcFunctionMMAP(object):
 
 class RpcFunction(RpcFunctionMMAP):
     
-    def echo(self):
-        return "Hello"
-    
     def version(self):
         return VERSION
     
@@ -110,26 +105,24 @@ class RpcFunction(RpcFunctionMMAP):
         # Modinstance : http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodinterface.h
         modinstance = self._organizer.installMod(str(path))
         if modinstance:
+            
             return unicode(modinstance.name())
 
     def install_mod2(self, name, path, version=None):
-        r = mobase.IInstallationManager().installArchive(mobase.GuessedString(name), str(path))
+        r = mobase.IInstallationManager().installArchive(unicode(name), str(path))
         #mod.setInstallationFile(str(path))
 
-class RpcWindow(QDialog):
-    saveSettings = pyqtSignal(dict)
-
-    def __init__(self,  organizer,  parent=None):
-        super(RpcWindow,  self).__init__(parent)
+    def get_mods(self):
+        l = []
+        ml = self._organizer.modList()
+        return dir(ml)
+        for mod in self._organizer.modList():
+            modname = mod.name()
+            active = None
+            l.append([mod.name()])
+        return l
         
-        self.__organizer = organizer
-
-        from pyCfgDialog import Ui_PyCfgDialog
-
-        self.__ui = Ui_PyCfgDialog()
-        self.__ui.setupUi(self)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-        self.__lastSelectedCategory = ""
+    
 
 RPC=None
         
@@ -188,7 +181,7 @@ class IniEdit(mobase.IPluginTool):
         self.__parentWidget = widget
 
     def display(self):
-        QMessageBox.information(self.__parentWidget, "Plugin running", "YAMM plugin is running")
+        QMessageBox.information(self.__parentWidget, "Plugin running", "YAMM plugin is running!\n\nMMAP file path used:\n%s" % RPC._filename)
         #self.__window = RpcWindow(self.__organizer)
         #self.__window.exec_()
         

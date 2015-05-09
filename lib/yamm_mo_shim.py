@@ -72,6 +72,7 @@ def ping():
 
 if __name__ == "__main__":
     if ping():
+        print rpc.get_mods()
         print rpc.version()
         print rpc.get_debug()
         print rpc.get_gamename()
