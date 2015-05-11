@@ -2,9 +2,15 @@ import re
 import logging
 
 import hashlib
-import urllib2
 
-from StringIO import StringIO
+try:
+    import urllib2
+    from StringIO import StringIO
+except ImportError:
+    #Python 3
+    from urllib import request as urllib2
+    from io import StringIO
+
 import gzip
 
 import json

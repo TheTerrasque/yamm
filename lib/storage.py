@@ -1,4 +1,4 @@
-from utility.peewee import *
+from .utility.peewee import *
 import random
 
 db = SqliteDatabase('mods.db')

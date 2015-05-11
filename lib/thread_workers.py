@@ -1,6 +1,9 @@
 import urllib
 from threading import Thread, Lock
-from Queue import Queue
+try:
+    from Queue import Queue
+except ImportError:
+    from queue import Queue
 import os.path
 
 def downloader_thread(queue, updatelock):

@@ -3,10 +3,13 @@ import mmap
 import time
 import tempfile
 import os.path
+import logging
 
 filename = "yamm_mo_rpc"
 filename = os.path.join(tempfile.gettempdir(), filename)
 size=16384
+
+L = logging.getLogger("YAMM.rpc_mo")
 
 class TimeoutException(Exception):
     pass
@@ -61,8 +64,7 @@ class RpcCaller(object):
             d = read()
             
         if "error" in d:
-            print " ", d["error"]
-            print " ", d["details"]
+            L.warn("Call error for %s: %s", function, d["details"])
             return None
         return d["result"]
         
@@ -78,12 +80,12 @@ def ping():
 
 if __name__ == "__main__":
     if ping():
-        print rpc.get_mods()
-        print rpc.version()
-        print rpc.get_debug()
-        print rpc.get_gamename()
-        print rpc.get_active_profile()
-        print rpc.install_mod(r"D:\\JContainers-49743-3-2-3.zip")
-        print rpc.install_mod2("JCTEST", r"D:\\JContainers-49743-3-2-3.zip")
+        print (rpc.get_mods())
+        print (rpc.version())
+        print (rpc.get_debug())
+        print (rpc.get_gamename())
+        print (rpc.get_active_profile())
+        print (rpc.install_mod(r"D:\\JContainers-49743-3-2-3.zip"))
+        print (rpc.install_mod2("JCTEST", r"D:\\JContainers-49743-3-2-3.zip"))
     else:
-        print "Timeout, ModOrganizer is not running?"
+        print ("Timeout, ModOrganizer is not running?")

@@ -1,11 +1,11 @@
-from storage import ModEntry, ModDependency, ModService, db, get_mod_by_name
+from .storage import ModEntry, ModDependency, ModService, db, get_mod_by_name
 
 import logging
 from collections import defaultdict
 
 import datetime
 
-from utils import create_filehash, get_json
+from .utils import create_filehash, get_json
 
 L = logging.getLogger("YAMM.moddb")
 

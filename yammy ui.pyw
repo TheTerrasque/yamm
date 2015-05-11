@@ -1,5 +1,6 @@
-import Tkinter as tK
-from lib.gui_components import initialize_uimodules, Search, open_window, DownloadModules, CALLBACK
+
+    
+from lib.gui_components import tK, initialize_uimodules, Search, open_window, DownloadModules, CALLBACK
 from lib.utils import get_base_path
 from lib import moddb
 import os.path
@@ -12,7 +13,7 @@ import logging
 L = logging.getLogger("YAMM.YammiUI")
 
 CALLBACK["downloadmod"] = lambda modlist: open_window(DownloadModules, [modlist, DLDIR])
-print DLDIR
+
 def main():    
     initialize_uimodules()
     

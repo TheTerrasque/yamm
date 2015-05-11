@@ -1,16 +1,23 @@
-import Tkinter as tK
-import tkMessageBox
-import tkSimpleDialog
+#Python 3 import stuff
+
+try:
+    import Tkinter as tK
+    import tkMessageBox
+    import tkSimpleDialog
+except ImportError:
+    import tkinter as tK
+    from tkinter import messagebox as tkMessageBox
+    from tkinter import simpledialog as tkSimpleDialog
+    
 from .utils import get_filesize_display
 import os
 from .thread_workers import start_download_threads
 import webbrowser
 
-import mo_rpc
+from . import mo_rpc
 
 import logging
 L = logging.getLogger("YAMM.YammiUI.TK")
-
 
 def open_window(module, data):
     top = tK.Toplevel()
@@ -125,7 +132,7 @@ class DownloadModules:
     
     def start_download(self):
         if not DLQUEUE:
-            print "ERROR! QUEUE NOT CREATED!"
+            print("ERROR! QUEUE NOT CREATED!")
             
         if not os.path.exists(self.downloaddir):
             os.mkdir(self.downloaddir)
