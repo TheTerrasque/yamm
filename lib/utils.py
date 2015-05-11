@@ -1,15 +1,15 @@
 import re
 import logging
-
+import base64
 import hashlib
 
 try:
     import urllib2
-    from StringIO import StringIO
 except ImportError:
     #Python 3
     from urllib import request as urllib2
-    from io import StringIO
+
+from io import BytesIO
 
 import gzip
 
@@ -57,7 +57,9 @@ def create_filehash(path):
         while len(buf) > 0:
             h.update(buf)
             buf = f.read(BLOCKSIZE)
-    return h.digest().encode("base64").strip().strip("=")
+    r = str(base64.b64encode(h.digest())).strip().strip("=")
+    print(r)
+    return r
 
 def get_json(url, etag=None):
     """
@@ -86,7 +88,7 @@ def get_json(url, etag=None):
     headers = url_handle.info()
     
     if headers.get("Content-Encoding") == "gzip":
-        buf = StringIO( url_handle.read() )
+        buf = BytesIO( url_handle.read() )
         L.debug("GZIP response")
         f = gzip.GzipFile(fileobj=buf)
         jdata = f
@@ -94,12 +96,11 @@ def get_json(url, etag=None):
         L.debug("Uncompressed response")
         jdata = url_handle
 
-    etag = headers.getheader("ETag")
+    etag = headers.get("ETag")
 
     if hasattr(url_handle, 'code') and url_handle.code == 304:
         return None, None
-        
-    # FIXME: Gzip?
-    data = json.load(jdata)
+    
+    data = json.loads(jdata.read().decode('utf-8'))
     
     return data, etag
