@@ -68,7 +68,7 @@ class ModDependencies(object):
                     if provider.VISITED:
                         continue
                     provider.VISITED = True
-                    d = provider.get_dependencies()
+                    d = provider.get_dependencies(False)
                     for key in d.dependencies:
                         depmap[key].update(d.dependencies[key])
         self.dependencies = depmap
@@ -126,7 +126,10 @@ class ModInstance(object):
         """
         return [x.dependency for x in ModDependency.select().where(ModDependency.mod==self.mod, ModDependency.relation == relation)]
     
-    def get_dependencies(self):
+    def get_dependencies(self, reset=True):
+        if reset:
+            for k in MOD_CACHE:
+                MOD_CACHE[k].VISITED = False
         if not self.DEPS:
             self.DEPS = ModDependencies(self)
         return self.DEPS

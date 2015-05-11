@@ -12,9 +12,12 @@ class TimeoutException(Exception):
     pass
 
 class RpcCaller(object):
+    data = None
+    
     def __init__(self):
-        fn = open(filename, "r+")
-        self.data = mmap.mmap(fn.fileno(), size)
+        if os.path.exists(filename):
+            fn = open(filename, "r+")
+            self.data = mmap.mmap(fn.fileno(), size)
     
     def __getattr__(self, value):
         def caller(*args, **kwargs):
@@ -23,6 +26,9 @@ class RpcCaller(object):
         
     
     def _send_request(self, function, args=[], kwargs={}, timeout = 0):
+        if not self.data:
+            return None
+        
         d = {
             "function": function,
             "args": args,

@@ -18,7 +18,28 @@ either dynamically on request or static on updates.
 
 ------------------------
 
-Example use:
+Running via GUI:
+
+ 1. Install Python (version 2) from python.org
+ 2. Then double click on the "yammy ui.pyw" file.
+    - First start might be a bit slow as it has to
+      set up the database and download metadata
+ 3. Double click the mod you want installed
+ 4. Click "Download mods"
+ 5. Click "Start download"
+ 6. All needed files will be downloaded to files/ subdir
+
+Mod Organizer plugin:
+
+ /!\ This is very much work in progress, and generally doesn't work very well
+ 
+ If you have copied the utils/plugin_MO.py to Mod Organizer's plugin directory,
+ and checked "Install in Mod Organizer after download" it will try to install
+ the mod to Mod Organizer, where Mod Organizer will pop up a dialoge asking for name
+ and doing the usual install procedure. 
+------------------------
+
+CLI Example use:
 
     # Build index and initialize DB
     python yamm.py add "http://terra.thelazy.net/yamm/mods.json"
