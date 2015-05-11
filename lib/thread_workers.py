@@ -5,27 +5,31 @@ import os.path
 
 def downloader_thread(queue, updatelock):
     def handle_next_entry():
-        mod, path, hook, active, completehook, overwrite =  queue.get()
-        msg = ""
+        widget =  queue.get()
+        
+        def set_widget_state(mini, maxi):
+            with updatelock:
+                widget.set_status(mini, maxi)
+        
         def mahook(count, blocksize, totalsize):
-          
             if count % 15 != 0:
                 return
             dl = count * blocksize
             percent = int(( float(dl) / totalsize) * 100)
             
             with updatelock:
-                hook(dl, totalsize, percent, active)
+                widget.update_download(dl, totalsize, percent)
         
-        if not overwrite and os.path.exists(path):
-                msg = "[-o-]  %s - Already downloaded"
-                if not mod.check_file(path, True):
-                    msg = "[/o\]  %s - File is damaged"
+        if not widget.overwrite and os.path.exists(widget.path):
+            set_widget_state("---", "Checking file")
+            
+            if not widget.mod.check_file(widget.path, True):
+                set_widget_state("/o\\", "File damaged")
         else:
-            urllib.urlretrieve(mod.get_url(), path, mahook)
-            msg = "[\o/]  %s - Completed"
+            urllib.urlretrieve(widget.mod.get_url(), widget.path, mahook)
+        
         with updatelock:
-            completehook(active, path, msg)
+            set_widget_state("\o/", "Completed")
     
     while True:
         handle_next_entry()

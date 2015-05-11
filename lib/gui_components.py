@@ -90,8 +90,8 @@ class DownloadModules:
         self.setup_widgets(master)
         self.master = master
 
-        for mod in self.mods:
-            self.modsbox.insert(tK.END, "[00%%]   %-30s ( %s )" % (mod.mod.name, mod.mod.filesize and get_filesize_display(mod.mod.filesize) or "N/A"))
+        #for mod in self.mods:
+            #self.modsbox.insert(tK.END, "[00%%]   %-30s ( %s )" % (mod.mod.name, mod.mod.filesize and get_filesize_display(mod.mod.filesize) or "N/A"))
         
     def setup_widgets(self, master):
         master.title("Modules Download Window")
@@ -103,9 +103,14 @@ class DownloadModules:
         title = tK.Label(frame, text="Mods to download")
         title.pack(fill=tK.X)
         
-        self.modsbox = tK.Listbox(frame)
-        self.modsbox.pack(fill=tK.BOTH, expand=1)
+        self.modwidgets = []
+        frameMod = tK.Frame(master)
+        frameMod.pack(fill=tK.BOTH, expand=1)
         
+        for mod in self.mods:
+            m = self.ui_create_dl_entry(frameMod, mod)
+            self.modwidgets.append(m)
+            
         self.button_dl = tK.Button(frame, text="Start download", command=self.start_download)
         self.button_dl.pack(fill=tK.X)
     
@@ -125,31 +130,76 @@ class DownloadModules:
     
     def ui_create_dl_entry(self, parent, mod):
         class ModDlEntry:
-            def __init__(self, parent, mod):
+            overwrite = False
+            
+            def __init__(self, parent, mod, downloaddir):
                 self.parent = parent
                 self.mod = mod
+                self.downloaddir = downloaddir
+                self.path =  os.path.join(self.downloaddir, mod.mod.filename)
+                
+                self.create_widgets()
+                self.set_data()
+                
+            def update_download(self, downloaded, totalsize, percent):
+                self.set_status("%02d%%" % percent, "Downloading %s of %s" % (get_filesize_display(downloaded), get_filesize_display(totalsize)))
                 
             def create_widgets(self):
                 frame = tK.Frame(self.parent)
-                frame.pack(fill=tK.X)
+                frame.pack(fill=tK.BOTH)
                 
                 # Add checkbox
                 # Add relation
                 # Add torrent toggle
                 # Add MO button
                 
-                # [X] | [95%] | BlaMod | Downloading | Required | 200MB | [x] Torrent | [Install in MO]
+                # [X] | [95%] | BlaMod | Downloading | Required | 200MB | [x] Torrent | [Install in MO] | [Redownload]
+                pack = {
+                    "side": tK.LEFT
+                }
+                
+                self.dlvar = tK.IntVar()
+                self.dlcheck = tK.Checkbutton(frame, var=self.dlvar)
+                self.dlcheck.pack(**pack)
                 
                 self.ministatus = tK.Label(frame, text="[-o-]")
-                self.ministatus.pack(side=tK.LEFT)
+                self.ministatus.pack(**pack)
                 
                 self.name = tK.Label(frame, text="%s" % self.mod.mod.name)
-                self.name.pack(side=tK.LEFT)
+                self.name.pack(expand=1, **pack)
             
-                self.status = tK.Label(frame, text="%s" % self.mod.mod.name)
-                self.status.pack(side=tK.LEFT)
+                self.status = tK.Label(frame, text="State")
+                self.status.pack(**pack)
+                
+                self.relation = tK.Label(frame, text="Relation")
+                self.relation.pack(**pack)
+                
+                self.size = tK.Label(frame, text="???")
+                self.size.pack(**pack)
+                
+                self.torrvar = tK.IntVar()
+                self.useTorrent = tK.Checkbutton(frame, var=self.torrvar, text="Torrent")
+                self.useTorrent.pack(**pack)
     
-        r = ModDlEntry(parent, mod)
+                self.button_mo = tK.Button(frame, text="Load in MO", command=self.install_mo)
+                self.button_mo.pack(fill=tK.X)
+    
+            def install_mo(self):
+                pass
+            
+            def set_data(self):
+                self.dlcheck.select()
+                
+                self.set_status("???", "Unknown status")
+                
+                if self.mod.mod.filesize:
+                    self.size.config(text=get_filesize_display(mod.mod.filesize))
+                    
+            def set_status(self, mini, text):
+                self.ministatus.config(text="[" + mini + "]")
+                self.status.config(text=text)
+    
+        r = ModDlEntry(parent, mod, self.downloaddir)
         return r
     
     def start_download(self):
@@ -158,21 +208,9 @@ class DownloadModules:
             
         if not os.path.exists(self.downloaddir):
             os.mkdir(self.downloaddir)
-        
-        def minihook(dl, totalsize, percent, modnum):
-            self.set_line(modnum, "[%02d%%]  %-30s ( %s / %s )" % (percent, self.mods[modnum].mod.name, get_filesize_display(dl), get_filesize_display(totalsize)))
-            #print "\r  %s%% - %s kb / %s kb" % (percent, dlkb, totalkb),
 
-        def completehook(active, path, message):
-            self.set_line(active, message % self.mods[active].mod.name)
-            
-            if self.mo_checkbox.var.get() and mo_rpc.ping():
-                mo_rpc.rpc.install_mod(path)
-
-        for i, m in enumerate(self.mods):
-            path = os.path.join(self.downloaddir, m.mod.filename)
-            d = [m, path, minihook, i, completehook, False]
-            DLQUEUE.put(d)
+        for m in self.modwidgets:
+            DLQUEUE.put(m)
 
 
 class ModuleInfo:
