@@ -123,6 +123,35 @@ class DownloadModules:
         self.modsbox.delete(lineno)
         self.modsbox.insert(lineno, value)
     
+    def ui_create_dl_entry(self, parent, mod):
+        class ModDlEntry:
+            def __init__(self, parent, mod):
+                self.parent = parent
+                self.mod = mod
+                
+            def create_widgets(self):
+                frame = tK.Frame(self.parent)
+                frame.pack(fill=tK.X)
+                
+                # Add checkbox
+                # Add relation
+                # Add torrent toggle
+                # Add MO button
+                
+                # [X] | [95%] | BlaMod | Downloading | Required | 200MB | [x] Torrent | [Install in MO]
+                
+                self.ministatus = tK.Label(frame, text="[-o-]")
+                self.ministatus.pack(side=tK.LEFT)
+                
+                self.name = tK.Label(frame, text="%s" % self.mod.mod.name)
+                self.name.pack(side=tK.LEFT)
+            
+                self.status = tK.Label(frame, text="%s" % self.mod.mod.name)
+                self.status.pack(side=tK.LEFT)
+    
+        r = ModDlEntry(parent, mod)
+        return r
+    
     def start_download(self):
         if not DLQUEUE:
             print "ERROR! QUEUE NOT CREATED!"
