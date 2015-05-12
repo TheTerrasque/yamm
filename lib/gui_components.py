@@ -54,7 +54,6 @@ class ServiceList:
         tK.Button(frame, text="Add service", command=self.add_service).pack(side=tK.LEFT)
         tK.Button(frame, text="Remove service", command=self.remove_service).pack(side=tK.LEFT)
         
-
     def add_service(self):
         service = tkSimpleDialog.askstring("Add service", "Service URL", parent=self.master)
         if service:
@@ -90,9 +89,6 @@ class DownloadModules:
         self.setup_widgets(master)
         self.master = master
 
-        #for mod in self.mods:
-            #self.modsbox.insert(tK.END, "[00%%]   %-30s ( %s )" % (mod.mod.name, mod.mod.filesize and get_filesize_display(mod.mod.filesize) or "N/A"))
-        
     def setup_widgets(self, master):
         master.title("Modules Download Window")
         master.minsize(width=400,  height=500)
@@ -113,21 +109,7 @@ class DownloadModules:
             
         self.button_dl = tK.Button(frame, text="Start download", command=self.start_download)
         self.button_dl.pack(fill=tK.X)
-    
-        v = tK.IntVar()
-        self.mo_checkbox = tK.Checkbutton(frame, text="Install in Mod Organizer after download", var=v, command=self.check_mo)
-        self.mo_checkbox.var = v
-        self.mo_checkbox.pack(fill=tK.X)
-    
-    def check_mo(self):
-        if self.mo_checkbox.var.get() and not mo_rpc.ping():
-            tkMessageBox.showerror("Connection error","Could not connect to Mod Organizer\n\nMake sure it's running and that the YAMM plugin is installed")
-            self.mo_checkbox.deselect()
-    
-    def set_line(self, lineno, value):
-        self.modsbox.delete(lineno)
-        self.modsbox.insert(lineno, value)
-    
+
     def ui_create_dl_entry(self, parent, mod):
         class ModDlEntry:
             overwrite = False
@@ -137,13 +119,11 @@ class DownloadModules:
                 self.mod = mod
                 self.downloaddir = downloaddir
                 self.path =  os.path.join(self.downloaddir, mod.mod.filename)
-                
+                self.required_by = ["Some modules here"]
+                self.recommended_by = []
                 self.create_widgets()
                 self.set_data()
-                
-            def update_download(self, downloaded, totalsize, percent):
-                self.set_status("%02d%%" % percent, "Downloading %s of %s" % (get_filesize_display(downloaded), get_filesize_display(totalsize)))
-                
+                               
             def create_widgets(self):
                 frame = tK.Frame(self.parent)
                 frame.pack(fill=tK.BOTH)
@@ -167,30 +147,40 @@ class DownloadModules:
                 
                 self.name = tK.Label(frame, text="%s" % self.mod.mod.name)
                 self.name.pack(expand=1, **pack)
+                self.name.bind("<Button-1>", self.show_mod)
+                
             
                 self.status = tK.Label(frame, text="State")
                 self.status.pack(**pack)
                 
-                self.relation = tK.Label(frame, text="Relation")
-                self.relation.pack(**pack)
+                #self.relation = tK.Label(frame, text="Relation")
+                #self.relation.pack(**pack)
                 
-                self.size = tK.Label(frame, text="???")
+                self.size = tK.Label(frame, text="-*-")
                 self.size.pack(**pack)
                 
                 self.torrvar = tK.IntVar()
                 self.useTorrent = tK.Checkbutton(frame, var=self.torrvar, text="Torrent")
                 self.useTorrent.pack(**pack)
     
-                self.button_mo = tK.Button(frame, text="Load in MO", command=self.install_mo)
+                self.button_mo = tK.Button(frame, text="To MO", command=self.install_in_mo)
                 self.button_mo.pack(fill=tK.X)
     
-            def install_mo(self):
-                pass
+            def download_checked(self):
+                return self.dlvar.get()
+    
+            def install_in_mo(self):
+                if mo_rpc.ping():
+                    mo_rpc.rpc.install_mod(self.path)
+                else:
+                    tkMessageBox.showerror("Connection error","Could not connect to Mod Organizer\n\nMake sure it's running and that the YAMM plugin is installed", parent=self.parent)
             
             def set_data(self):
                 self.dlcheck.select()
                 
-                self.set_status("???", "Unknown status")
+                self.set_status("-*-", "Listed")
+                
+                self.useTorrent.config(state=tK.DISABLED) # tK.NORMAL
                 
                 if self.mod.mod.filesize:
                     self.size.config(text=get_filesize_display(mod.mod.filesize))
@@ -198,20 +188,26 @@ class DownloadModules:
             def set_status(self, mini, text):
                 self.ministatus.config(text="[" + mini + "]")
                 self.status.config(text=text)
+
+            def update_download(self, downloaded, totalsize, percent):
+                self.set_status("%02d%%" % percent, "Downloading %s of %s" % (get_filesize_display(downloaded), get_filesize_display(totalsize)))
+            
+            def show_mod(self, event):
+                CALLBACK["showmod"](self.mod)
     
         r = ModDlEntry(parent, mod, self.downloaddir)
         return r
     
     def start_download(self):
         if not DLQUEUE:
-            print "ERROR! QUEUE NOT CREATED!"
+            L.critical("ERROR! QUEUE NOT CREATED!")
             
         if not os.path.exists(self.downloaddir):
             os.mkdir(self.downloaddir)
 
         for m in self.modwidgets:
-            DLQUEUE.put(m)
-
+            if m.download_checked():
+                DLQUEUE.put(m)
 
 class ModuleInfo:
     

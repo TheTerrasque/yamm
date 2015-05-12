@@ -12,7 +12,9 @@ import logging
 L = logging.getLogger("YAMM.YammiUI")
 
 CALLBACK["downloadmod"] = lambda modlist: open_window(DownloadModules, [modlist, DLDIR])
-print DLDIR
+
+L.debug("Download directory: %s", DLDIR)
+
 def main():    
     initialize_uimodules()
     

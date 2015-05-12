@@ -28,8 +28,7 @@ def downloader_thread(queue, updatelock):
         else:
             urllib.urlretrieve(widget.mod.get_url(), widget.path, mahook)
         
-        with updatelock:
-            set_widget_state("\o/", "Completed")
+        set_widget_state("\o/", "Completed")
     
     while True:
         handle_next_entry()
