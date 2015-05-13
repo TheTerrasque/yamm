@@ -276,7 +276,11 @@ class ModuleInfo:
         depslist = self.mod.get_dependencies().dependencies
         deps = [(k, x.get_provider()) for k, x in depslist.items() if x.required_by]
         recommends = [(k, x.get_provider()) for k, x in depslist.items() if x.recommended_by]
-        return [deps, recommends]
+        def getkey(obj):
+            if obj[1]:
+                return obj[1].mod.name
+            return None
+        return [sorted(deps, key=getkey), sorted(recommends, key=getkey)]
     
     def start_download(self):
         modlist = self.get_modlist()[0]
