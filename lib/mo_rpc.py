@@ -15,10 +15,15 @@ class RpcCaller(object):
     data = None
     
     def __init__(self):
-        if os.path.exists(filename):
-            fn = open(filename, "r+")
-            self.data = mmap.mmap(fn.fileno(), size)
+        self._setup_link()
     
+    def _setup_link(self):
+        if not os.path.exists(filename):
+            with open(filename, "wb") as f:
+                f.write("Hello Python!\n")
+        fn = open(filename, "r+")
+        self.data = mmap.mmap(fn.fileno(), size)
+        
     def __getattr__(self, value):
         def caller(*args, **kwargs):
             return self._send_request(value, args, kwargs)
