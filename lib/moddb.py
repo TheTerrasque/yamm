@@ -68,9 +68,10 @@ class ModDependencies(object):
                     if provider.VISITED:
                         continue
                     provider.VISITED = True
-                    d = provider.get_dependencies(False)
-                    for key in d.dependencies:
-                        depmap[key].update(d.dependencies[key])
+                    if i == 0: #Only follow if required
+                        d = provider.get_dependencies(False)
+                        for key in d.dependencies:
+                            depmap[key].update(d.dependencies[key])
         self.dependencies = depmap
 
     def get_required_mods(self):
