@@ -25,10 +25,14 @@ def downloader_thread(queue, updatelock):
             
             if not widget.mod.check_file(widget.path, True):
                 set_widget_state("/o\\", "File damaged")
+            else:
+                set_widget_state("-o-", "Completed")
         else:
             urllib.urlretrieve(widget.mod.get_url(), widget.path, mahook)
+            set_widget_state("\o/", "Completed")
+            if not widget.mod.check_file(widget.path, True):
+                set_widget_state("/o\\", "File damaged")
         
-        set_widget_state("\o/", "Completed")
     
     while True:
         handle_next_entry()
@@ -40,7 +44,7 @@ def start_download_threads(num=2):
     Start up threads for file downloading
     
     Queue arguments:
-        [module, basepath, progresshook, modnumber, download_complete_hook, overwrite_boolean]
+        module UI widget class
     """
     queue = Queue()
     updatelock = Lock()
