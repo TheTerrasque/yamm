@@ -63,6 +63,9 @@ def info(mdb, args):
         
 def download(mdb, args):
     mod = mdb.get_module(args.extra)
+    if not mod:
+        print "Could not find mod '%s' in the database. Perhaps try search or update" % args.extra
+        return
     depends = mod.get_dependencies().get_required_mods()
     downloadlist = [mod] + depends["mods"]
     
