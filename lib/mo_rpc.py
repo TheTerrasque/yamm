@@ -88,7 +88,8 @@ if __name__ == "__main__":
         print rpc.get_debug()
         print rpc.get_gamename()
         print rpc.get_active_profile()
-        print rpc.install_mod(r"D:\\JContainers-49743-3-2-3.zip")
-        print rpc.install_mod2("JCTEST", r"D:\\JContainers-49743-3-2-3.zip")
+        print rpc.get_mods()
+        #print rpc.install_mod(r"D:\\JContainers-49743-3-2-3.zip", "JTC")
+        #print rpc.install_mod2("JCTEST", r"D:\\JContainers-49743-3-2-3.zip")
     else:
         print "Timeout, ModOrganizer is not running?"

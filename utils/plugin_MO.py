@@ -10,6 +10,8 @@
 # member functions declared "virtual" from each interface.
 ##
 
+# http://sourceforge.net/p/modorganizer/code/ci/7a98e2c0541bdda56b7d2a5bd0549bb5005b3e4c/
+
 # qt5
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer
@@ -103,23 +105,32 @@ class RpcFunction(RpcFunctionMMAP):
     
     def install_mod(self, path, name=None, version=None):
         # Modinstance : http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodinterface.h
-        modinstance = self._organizer.installMod(str(path))
+        if name:
+            modinstance = self._organizer.installMod(str(path), str(name))
+        else:
+            modinstance = self._organizer.installMod(str(path))
         if modinstance:
-            
             return unicode(modinstance.name())
 
-    def install_mod2(self, name, path, version=None):
-        r = mobase.IInstallationManager().installArchive(unicode(name), str(path))
-        #mod.setInstallationFile(str(path))
+    def set_active(self, modname, state=True):
+        self._organizer.modList().setActive(str(modname), state)
+    
 
     def get_mods(self):
+        modlist = self._organizer.modList().allMods()
         l = []
-        ml = self._organizer.modList()
-        return dir(ml)
-        for mod in self._organizer.modList():
-            modname = mod.name()
-            active = None
-            l.append([mod.name()])
+        for modname in modlist:
+            modstate = self._organizer.modList().state(str(modname))
+            mod = {
+                "name": modname,
+                "state": modstate,
+                "active": bool(modstate & 0x2),
+                "valid": bool(modstate & 0x20),
+                "endorsed": bool(modstate & 0x10),
+                "essential": bool(modstate & 0x4),
+                "empty": bool(modstate & 0x8),
+            }
+            l.append(mod)
         return l
         
     

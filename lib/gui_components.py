@@ -171,7 +171,9 @@ class DownloadModules:
     
             def install_in_mo(self):
                 if mo_rpc.ping():
-                    mo_rpc.rpc.install_mod(self.path)
+                    mod_name = mo_rpc.rpc.install_mod(self.path, self.mod.mod.name)
+                    if mod_name:
+                        mo_rpc.rpc.set_active(mod_name)
                 else:
                     tkMessageBox.showerror("Connection error","Could not connect to Mod Organizer\n\nMake sure it's running and that the YAMM plugin is installed", parent=self.parent)
             
