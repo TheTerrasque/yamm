@@ -184,6 +184,11 @@ class DownloadModules:
                 
                 if self.mod.mod.filesize:
                     self.size.config(text=get_filesize_display(mod.mod.filesize))
+                
+                if not self.mod.mod.filename:
+                    self.dlcheck.deselect()
+                    self.dlcheck.config(state=tK.DISABLED)
+                    self.set_status("-v-", "No download info")
                     
             def set_status(self, mini, text):
                 self.ministatus.config(text="[" + mini + "]")

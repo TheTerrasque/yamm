@@ -115,11 +115,19 @@ class ModInstance(object):
             return h == self.mod.filehash
         return approve_if_no_dbhash
     
+    def get_urls(self):
+        """
+        Return download urls for mod archive
+        """
+        if self.mod.filename:
+            return [x + self.mod.filename for x in self.mod.service.get_mirrors()]
+    
     def get_url(self):
         """
-        Return download url for mod archive
+        Return random download url for mod archive
         """
-        return self.mod.service.get_mirror() + self.mod.filename
+        if self.mod.filename:
+            return self.mod.service.get_mirror() + self.mod.filename
     
     def get_dependency_tags(self, relation=0):
         """
@@ -131,8 +139,10 @@ class ModInstance(object):
         if reset:
             for k in MOD_CACHE:
                 MOD_CACHE[k].VISITED = False
+        
         if not self.DEPS:
             self.DEPS = ModDependencies(self)
+        
         return self.DEPS
     
 class ModDb(object):
@@ -219,11 +229,10 @@ class ServiceUpdater(object):
                 self.updated += 1
                     
         modentry.version = mod["version"]
-        modentry.filename = mod["filename"]
         modentry.service = self.service
         
         # Optional entries
-        for field in ["description", "filehash", "filesize", "homepage", "author", "category"]:
+        for field in ["description", "filehash", "filesize", "homepage", "author", "category", "filename"]:
             if mod.get(field):
                 setattr(modentry, field, mod[field])
         
