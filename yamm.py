@@ -50,7 +50,10 @@ def info(mdb, args):
         val = getattr(mod.mod, field)
         if val:
             print "%s: %s" % (field.capitalize(), val)
-    
+    urls = mod.get_url()
+    if not urls:
+        print "Mod has no download url"
+
     print "Download URL : %s" % mod.get_url()
     depends = mod.get_dependencies().get_required_mods()
     
@@ -86,6 +89,10 @@ def download(mdb, args):
     print "Starting downloads.."
     
     for i, m in enumerate(downloadlist):
+        if not m.mod.filename:
+            print "%s does not have a download url" % m.mod.name
+            continue
+        
         path = os.path.join(args.dldir, m.mod.filename)
         print " Downloading %s [%s/%s]" % (m.mod.name, i+1, len(downloadlist))
         if os.path.exists(path):
