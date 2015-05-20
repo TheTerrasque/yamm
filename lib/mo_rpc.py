@@ -74,6 +74,7 @@ class RpcCaller(object):
         if "error" in d:
             print " ", d["error"]
             print " ", d["details"]
+            print " ", d["data"]
             return None
         return d["result"]
         
@@ -93,6 +94,8 @@ if __name__ == "__main__":
         print rpc.version()
         print rpc.get_mo_version()
         print rpc.get_debug()
+        print rpc.get_mod("Testing 123")
+        print rpc.get_mod("SkyUI")
         print rpc.get_gamename()
         print rpc.get_active_profile()
         print rpc.get_mods()

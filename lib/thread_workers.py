@@ -19,12 +19,15 @@ def mod_organizer_thread(queue, updatelock):
             continue
         
         if widget.path:
-            set_widget_state("MO ", "Waiting for Mod Organizer")
-            modname = rpc.install_mod(widget.path, widget.mod.mod.name)
-            if modname:
-                set_widget_state("MO!", "Mod installed")
+            if rpc.get_mod(widget.mod.mod.name):
+                set_widget_state("MO!", "Mod already installed")
             else:
-                set_widget_state("MO?", "Mod install failed")
+                set_widget_state("MO>", "Waiting for Mod Organizer")
+                modname = rpc.install_mod(widget.path, widget.mod.mod.name)
+                if modname:
+                    set_widget_state("MO!", "Mod installed")
+                else:
+                    set_widget_state("MO?", "Mod install failed")
         else:
             set_widget_state("---", "No mod file to install")
             

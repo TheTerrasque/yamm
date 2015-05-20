@@ -75,7 +75,8 @@ class RpcFunctionMMAP(object):
             jr = json.dumps({
                 "result": "ERROR",
                 "error": "An error happened",
-                "details": unicode(e)
+                "details": unicode(e),
+                "data": data,
             })
         return jr
         
@@ -121,13 +122,11 @@ class RpcFunction(RpcFunctionMMAP):
         # http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodlist.h
         self._organizer.modList().setActive(str(modname), state)
     
-    def get_mods(self):
-        # http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodlist.h
-        modlist = self._organizer.modList().allMods()
-        l = []
-        for modname in modlist:
+    def get_mod(self, modname):
+        mod = self._organizer.getMod(str(modname))
+        if mod:
             modstate = self._organizer.modList().state(str(modname))
-            mod = {
+            moddata = {
                 "name": modname,
                 "state": modstate,
                 "active": bool(modstate & 0x2),
@@ -136,7 +135,15 @@ class RpcFunction(RpcFunctionMMAP):
                 "essential": bool(modstate & 0x4),
                 "empty": bool(modstate & 0x8),
             }
-            l.append(mod)
+            return moddata
+    
+        
+    def get_mods(self):
+        # http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodlist.h
+        modlist = self._organizer.modList().allMods()
+        l = []
+        for modname in modlist:
+            l.append(self.get_mod(modname))
         return l
         
 
