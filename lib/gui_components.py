@@ -3,10 +3,8 @@ import tkMessageBox
 import tkSimpleDialog
 from .utils import get_filesize_display
 import os
-from .thread_workers import start_download_threads
+from .thread_workers import start_threads
 import webbrowser
-
-import mo_rpc
 
 import logging
 L = logging.getLogger("YAMM.YammiUI.TK")
@@ -25,10 +23,13 @@ CALLBACK = {
 }
 
 DLQUEUE = None
+MOQUEUE = None
 
 def initialize_uimodules():
     global DLQUEUE
-    DLQUEUE = start_download_threads()
+    global MOQUEUE
+    DLQUEUE, MOQUEUE = start_threads()
+    
 
 
 class ServiceList:
@@ -118,7 +119,7 @@ class DownloadModules:
                 self.parent = parent
                 self.mod = mod
                 self.downloaddir = downloaddir
-                self.path =  os.path.join(self.downloaddir, mod.mod.filename)
+                self.path =  mod.mod.filename and os.path.join(self.downloaddir, mod.mod.filename) or None
                 self.required_by = ["Some modules here"]
                 self.recommended_by = []
                 self.create_widgets()
@@ -170,13 +171,8 @@ class DownloadModules:
                 return self.dlvar.get()
     
             def install_in_mo(self):
-                if mo_rpc.ping():
-                    mod_name = mo_rpc.rpc.install_mod(self.path, self.mod.mod.name)
-                    if mod_name:
-                        mo_rpc.rpc.set_active(mod_name)
-                else:
-                    tkMessageBox.showerror("Connection error","Could not connect to Mod Organizer\n\nMake sure it's running and that the YAMM plugin is installed", parent=self.parent)
-            
+                MOQUEUE.put(self)
+                
             def set_data(self):
                 self.dlcheck.select()
                 
@@ -187,7 +183,7 @@ class DownloadModules:
                 if self.mod.mod.filesize:
                     self.size.config(text=get_filesize_display(mod.mod.filesize))
                 
-                if not self.mod.mod.filename:
+                if not self.path:
                     self.dlcheck.deselect()
                     self.dlcheck.config(state=tK.DISABLED)
                     self.set_status("-v-", "No download info")

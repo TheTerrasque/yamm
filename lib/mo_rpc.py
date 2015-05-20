@@ -11,6 +11,9 @@ size=16384
 class TimeoutException(Exception):
     pass
 
+PLUGIN_VERSION = 2
+MO_VERSION = [1, 3, 5]
+
 class RpcCaller(object):
     data = None
     
@@ -29,6 +32,9 @@ class RpcCaller(object):
             return self._send_request(value, args, kwargs)
         return caller
         
+    
+    def _check_version(self):
+        return True
     
     def _send_request(self, function, args=[], kwargs={}, timeout = 0):
         if not self.data:
@@ -71,25 +77,24 @@ class RpcCaller(object):
             return None
         return d["result"]
         
-        
-rpc = RpcCaller()
 
-def ping():
-    try:
-        return rpc._send_request("version", timeout=0.2)
-    except TimeoutException:
-        return False
+    def ping(self):
+        try:
+            return self._send_request("version", timeout=0.2)
+        except TimeoutException:
+            return False
         
 
 if __name__ == "__main__":
-    if ping():
+    
+    rpc = RpcCaller()
+    if rpc.ping():
         print rpc.get_mods()
         print rpc.version()
+        print rpc.get_mo_version()
         print rpc.get_debug()
         print rpc.get_gamename()
         print rpc.get_active_profile()
         print rpc.get_mods()
-        #print rpc.install_mod(r"D:\\JContainers-49743-3-2-3.zip", "JTC")
-        #print rpc.install_mod2("JCTEST", r"D:\\JContainers-49743-3-2-3.zip")
     else:
         print "Timeout, ModOrganizer is not running?"

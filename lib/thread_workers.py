@@ -3,9 +3,34 @@ from threading import Thread, Lock
 from Queue import Queue
 import os.path
 
+import mo_rpc
+
+def mod_organizer_thread(queue, updatelock):
+    rpc = mo_rpc.RpcCaller()
+    
+    def set_widget_state(mini, maxi):
+            with updatelock:
+                widget.set_status(mini, maxi)
+    while True:
+        widget = queue.get()
+        
+        if not rpc.ping():
+            set_widget_state("-MO", "Could not connect to MO")
+            continue
+        
+        if widget.path:
+            set_widget_state("MO ", "Waiting for Mod Organizer")
+            modname = rpc.install_mod(widget.path, widget.mod.mod.name)
+            if modname:
+                set_widget_state("MO!", "Mod installed")
+            else:
+                set_widget_state("MO?", "Mod install failed")
+        else:
+            set_widget_state("---", "No mod file to install")
+            
 def downloader_thread(queue, updatelock):
     def handle_next_entry():
-        widget =  queue.get()
+        widget = queue.get()
         
         def set_widget_state(mini, maxi):
             with updatelock:
@@ -39,18 +64,23 @@ def downloader_thread(queue, updatelock):
 
 THREADS = []
 
-def start_download_threads(num=2):
+def start_threads(dlnum=2):
     """
     Start up threads for file downloading
     
     Queue arguments:
         module UI widget class
     """
-    queue = Queue()
+    dlqueue = Queue()
+    modqueue = Queue()
     updatelock = Lock()
-    for x in range(num):
-        DLTHREAD = Thread(target=downloader_thread, args = (queue, updatelock))
+    for x in range(dlnum):
+        DLTHREAD = Thread(target=downloader_thread, args = (dlqueue, updatelock))
         DLTHREAD.daemon = True
         DLTHREAD.start()
         THREADS.append(DLTHREAD)
-    return queue
+    MODTHREAD = Thread(target=mod_organizer_thread, args = (modqueue, updatelock))
+    MODTHREAD.daemon = True
+    MODTHREAD.start()
+    THREADS.append(MODTHREAD)
+    return dlqueue, modqueue

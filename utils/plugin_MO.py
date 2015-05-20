@@ -30,7 +30,7 @@ import tempfile
 L = logging.getLogger("YAMM.YammMOshim")
 
 MMSIZE=16384
-VERSION = 1
+VERSION = 2
 
 class RpcFunctionMMAP(object):
     _OLD = ""
@@ -91,9 +91,14 @@ class RpcFunctionMMAP(object):
 class RpcFunction(RpcFunctionMMAP):
     
     def version(self):
+        "Return plugin version"
         return VERSION
     
+    def get_mo_version(self):
+        return [int(x) for x in self._organizer.appVersion().canonicalString().split(".")]
+    
     def get_gamename(self):
+        "Return name of active game"
         return str(self._organizer.gameInfo().type())
     
     def get_debug(self):
@@ -113,10 +118,11 @@ class RpcFunction(RpcFunctionMMAP):
             return unicode(modinstance.name())
 
     def set_active(self, modname, state=True):
+        # http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodlist.h
         self._organizer.modList().setActive(str(modname), state)
     
-
     def get_mods(self):
+        # http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodlist.h
         modlist = self._organizer.modList().allMods()
         l = []
         for modname in modlist:
@@ -133,7 +139,6 @@ class RpcFunction(RpcFunctionMMAP):
             l.append(mod)
         return l
         
-    
 
 RPC=None
         

@@ -170,7 +170,6 @@ class ModDb(object):
             for service in self.get_services():
                 updater = ServiceUpdater(service)
                 updater.update()
-                L.info("%s: %s new, %s updated", service.name, updater.new, updater.updated)
     
     def get_module_count(self):
         return ModEntry.select().count()
@@ -191,8 +190,6 @@ class ModDb(object):
         return [get_modentry(x.id, x) for x in d]
     
 class ServiceUpdater(object):
-    new = 0
-    updated = 0
     
     # PeeWee related class functions
 
@@ -220,14 +217,6 @@ class ServiceUpdater(object):
         """Create or update a mod instance in DB"""
         modentry, created = ModEntry.get_or_create(name=mod["name"], service=self.service)
         
-        if created:
-            self.new += 1
-            modentry.updated = datetime.datetime.now()
-        else:
-            if modentry.version != mod["version"]:
-                modentry.updated = datetime.datetime.now()
-                self.updated += 1
-                    
         modentry.version = mod["version"]
         modentry.service = self.service
         
@@ -252,7 +241,8 @@ class ServiceUpdater(object):
             self.update_mods(data["mods"])
         
     def update_mods(self, modlist):
-
+        ModEntry.delete().where(ModEntry.service == self.service).execute()
+        
         for mod in modlist:
             modentry, new_entry = self.save_mod_instance(mod)
             
