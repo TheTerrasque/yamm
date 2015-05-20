@@ -25,6 +25,9 @@ class RpcCaller(object):
             with open(filename, "wb") as f:
                 f.write("Hello Python!\n")
         fn = open(filename, "r+")
+        fn.seek(size - 1)
+        fn.write("\0")
+        fn.flush()
         self.data = mmap.mmap(fn.fileno(), size)
         
     def __getattr__(self, value):
