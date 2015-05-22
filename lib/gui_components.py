@@ -31,6 +31,34 @@ def initialize_uimodules():
     DLQUEUE, MOQUEUE = start_threads()
     
 
+class CreateToolTip(object):
+    '''
+    create a tooltip for a given widget
+    '''
+    #Source : https://www.daniweb.com/software-development/python/code/484591/a-tooltip-class-for-tkinter
+    def __init__(self, widget, text='widget info'):
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.close)
+    def enter(self, event=None):
+        x = y = 0
+        x, y, cx, cy = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 20
+        # creates a toplevel window
+        self.tw = tK.Toplevel(self.widget)
+        # Leaves only the label and removes the app window
+        self.tw.wm_overrideredirect(True)
+        self.tw.wm_geometry("+%d+%d" % (x, y))
+        label = tK.Label(self.tw, text=self.text, justify='left',
+                       background='yellow', relief='solid', borderwidth=1,
+                       font=("times", "8", "normal"))
+        label.pack(ipadx=1)
+    def close(self, event=None):
+        if self.tw:
+            self.tw.destroy()
+
 
 class ServiceList:
     def __init__(self, master, mdb):
@@ -81,6 +109,100 @@ class ServiceList:
             #show_mod_window(mod)
             self.servicebox.insert(tK.END, service.name)
 
+
+class ModDlEntry:
+    """
+    An UI object representing the mod and related info
+    For downloading mod
+    """
+    overwrite = False
+    
+    def __init__(self, parent, mod, downloaddir):
+        self.parent = parent
+        self.mod = mod
+        self.downloaddir = downloaddir
+        self.path =  mod.mod.filename and os.path.join(self.downloaddir, mod.mod.filename) or None
+        self.required_by = ["Some modules here"]
+        self.recommended_by = []
+        self.create_widgets()
+        self.set_data()
+                       
+    def create_widgets(self):
+        frame = tK.Frame(self.parent)
+        frame.pack(fill=tK.BOTH)
+        
+        # Add checkbox
+        # Add relation
+        # Add torrent toggle
+        # Add MO button
+        
+        # [X] | [95%] | BlaMod | Downloading | Required | 200MB | [x] Torrent | [Install in MO] | [Redownload]
+        pack = {
+            "side": tK.LEFT,
+            "padx": 5,
+            "pady": 3
+        }
+        
+        self.dlvar = tK.IntVar()
+        self.dlcheck = tK.Checkbutton(frame, var=self.dlvar)
+        self.dlcheck.pack(**pack)
+        
+        self.ministatus = tK.Label(frame, text="[-o-]")
+        self.ministatus.pack(**pack)
+        
+        self.name = tK.Label(frame, text="%s" % self.mod.mod.name, anchor=tK.W)
+        self.name.pack(expand=1, fill=tK.X, **pack)
+        self.name.bind("<Button-1>", self.show_mod)
+        
+    
+        self.status = tK.Label(frame, text="State")
+        self.status.pack(**pack)
+        
+        #self.relation = tK.Label(frame, text="Relation")
+        #self.relation.pack(**pack)
+        
+        self.size = tK.Label(frame, text="??? kb")
+        self.size.pack(**pack)
+        
+        self.torrvar = tK.IntVar()
+        self.useTorrent = tK.Checkbutton(frame, var=self.torrvar, text="Torrent")
+        self.useTorrent.pack(**pack)
+
+        self.button_mo = tK.Button(frame, text="To MO", command=self.install_in_mo)
+        self.button_mo.pack(fill=tK.X)
+        CreateToolTip(self.button_mo, "Install the mod in Mod Organizer")
+
+    def download_checked(self):
+        return self.dlvar.get()
+
+    def install_in_mo(self):
+        MOQUEUE.put(self)
+        
+    def set_data(self):
+        self.dlcheck.select()
+        
+        self.set_status("-*-", "Listed")
+        
+        self.useTorrent.config(state=tK.DISABLED) # tK.NORMAL
+        
+        if self.mod.mod.filesize:
+            self.size.config(text=get_filesize_display(self.mod.mod.filesize))
+        
+        if not self.path:
+            self.dlcheck.deselect()
+            self.dlcheck.config(state=tK.DISABLED)
+            self.set_status("-v-", "No download info")
+            
+    def set_status(self, mini, text):
+        self.ministatus.config(text="[" + mini + "]")
+        self.status.config(text=text)
+
+    def update_download(self, downloaded, totalsize, percent):
+        self.set_status("%02d%%" % percent, "Downloading %s of %s" % (get_filesize_display(downloaded), get_filesize_display(totalsize)))
+    
+    def show_mod(self, event):
+        CALLBACK["showmod"](self.mod)
+
     
 class DownloadModules:
    
@@ -97,7 +219,7 @@ class DownloadModules:
         frame = tK.Frame(master)
         frame.pack(fill=tK.BOTH, expand=1)
         
-        title = tK.Label(frame, text="Mods to download")
+        title = tK.Label(frame, text="Mod download list")
         title.pack(fill=tK.X)
         
         self.modwidgets = []
@@ -112,91 +234,7 @@ class DownloadModules:
         self.button_dl.pack(fill=tK.X)
 
     def ui_create_dl_entry(self, parent, mod):
-        class ModDlEntry:
-            overwrite = False
-            
-            def __init__(self, parent, mod, downloaddir):
-                self.parent = parent
-                self.mod = mod
-                self.downloaddir = downloaddir
-                self.path =  mod.mod.filename and os.path.join(self.downloaddir, mod.mod.filename) or None
-                self.required_by = ["Some modules here"]
-                self.recommended_by = []
-                self.create_widgets()
-                self.set_data()
-                               
-            def create_widgets(self):
-                frame = tK.Frame(self.parent)
-                frame.pack(fill=tK.BOTH)
-                
-                # Add checkbox
-                # Add relation
-                # Add torrent toggle
-                # Add MO button
-                
-                # [X] | [95%] | BlaMod | Downloading | Required | 200MB | [x] Torrent | [Install in MO] | [Redownload]
-                pack = {
-                    "side": tK.LEFT
-                }
-                
-                self.dlvar = tK.IntVar()
-                self.dlcheck = tK.Checkbutton(frame, var=self.dlvar)
-                self.dlcheck.pack(**pack)
-                
-                self.ministatus = tK.Label(frame, text="[-o-]")
-                self.ministatus.pack(**pack)
-                
-                self.name = tK.Label(frame, text="%s" % self.mod.mod.name)
-                self.name.pack(expand=1, **pack)
-                self.name.bind("<Button-1>", self.show_mod)
-                
-            
-                self.status = tK.Label(frame, text="State")
-                self.status.pack(**pack)
-                
-                #self.relation = tK.Label(frame, text="Relation")
-                #self.relation.pack(**pack)
-                
-                self.size = tK.Label(frame, text="-*-")
-                self.size.pack(**pack)
-                
-                self.torrvar = tK.IntVar()
-                self.useTorrent = tK.Checkbutton(frame, var=self.torrvar, text="Torrent")
-                self.useTorrent.pack(**pack)
-    
-                self.button_mo = tK.Button(frame, text="To MO", command=self.install_in_mo)
-                self.button_mo.pack(fill=tK.X)
-    
-            def download_checked(self):
-                return self.dlvar.get()
-    
-            def install_in_mo(self):
-                MOQUEUE.put(self)
-                
-            def set_data(self):
-                self.dlcheck.select()
-                
-                self.set_status("-*-", "Listed")
-                
-                self.useTorrent.config(state=tK.DISABLED) # tK.NORMAL
-                
-                if self.mod.mod.filesize:
-                    self.size.config(text=get_filesize_display(mod.mod.filesize))
-                
-                if not self.path:
-                    self.dlcheck.deselect()
-                    self.dlcheck.config(state=tK.DISABLED)
-                    self.set_status("-v-", "No download info")
-                    
-            def set_status(self, mini, text):
-                self.ministatus.config(text="[" + mini + "]")
-                self.status.config(text=text)
-
-            def update_download(self, downloaded, totalsize, percent):
-                self.set_status("%02d%%" % percent, "Downloading %s of %s" % (get_filesize_display(downloaded), get_filesize_display(totalsize)))
-            
-            def show_mod(self, event):
-                CALLBACK["showmod"](self.mod)
+        
     
         r = ModDlEntry(parent, mod, self.downloaddir)
         return r
