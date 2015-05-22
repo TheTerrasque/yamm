@@ -144,7 +144,7 @@ class ModDlEntry:
         self.dlcheck = tK.Checkbutton(frame, var=self.dlvar)
         self.dlcheck.pack(**pack)
         
-        self.ministatus = tK.Label(frame, text="[-o-]")
+        self.ministatus = tK.Label(frame, text="-o-", font="Fixedsys 9")
         self.ministatus.pack(**pack)
         
         self.name = tK.Label(frame, text="%s" % self.mod.mod.name, anchor=tK.W)
@@ -197,7 +197,7 @@ class ModDlEntry:
             self.set_status("-v-", "No download info")
             
     def set_status(self, mini, text):
-        self.ministatus.config(text="[" + mini + "]")
+        self.ministatus.config(text=mini)
         self.status.config(text=text)
 
     def update_download(self, downloaded, totalsize, percent):
