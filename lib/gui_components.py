@@ -129,12 +129,9 @@ class ModDlEntry:
                        
     def create_widgets(self):
         frame = tK.Frame(self.parent)
+        self.frame = frame
+        frame.config(relief=tK.SUNKEN, bd=1)
         frame.pack(fill=tK.BOTH)
-        
-        # Add checkbox
-        # Add relation
-        # Add torrent toggle
-        # Add MO button
         
         # [X] | [95%] | BlaMod | Downloading | Required | 200MB | [x] Torrent | [Install in MO] | [Redownload]
         pack = {
@@ -153,7 +150,6 @@ class ModDlEntry:
         self.name = tK.Label(frame, text="%s" % self.mod.mod.name, anchor=tK.W)
         self.name.pack(expand=1, fill=tK.X, **pack)
         self.name.bind("<Button-1>", self.show_mod)
-        
     
         self.status = tK.Label(frame, text="State")
         self.status.pack(**pack)
@@ -172,7 +168,14 @@ class ModDlEntry:
         self.button_mo.pack(fill=tK.X)
         CreateToolTip(self.button_mo, "Install the mod in Mod Organizer")
 
-    def download_checked(self):
+        self.set_row_color("#fff")
+
+    def set_row_color(self, hexcolor):
+        for e in [self.frame, self.dlcheck, self.ministatus,
+                  self.name, self.status, self.size, self.useTorrent]:
+            e.config(background=hexcolor)
+
+    def is_download_checked(self):
         return self.dlvar.get()
 
     def install_in_mo(self):
@@ -223,21 +226,25 @@ class DownloadModules:
         title.pack(fill=tK.X)
         
         self.modwidgets = []
-        frameMod = tK.Frame(master)
+        frameMod = tK.Frame(frame)
         frameMod.pack(fill=tK.BOTH, expand=1)
         
         for mod in self.mods:
-            m = self.ui_create_dl_entry(frameMod, mod)
+            m = ModDlEntry(frameMod, mod, self.downloaddir)
             self.modwidgets.append(m)
             
-        self.button_dl = tK.Button(frame, text="Start download", command=self.start_download)
-        self.button_dl.pack(fill=tK.X)
-
-    def ui_create_dl_entry(self, parent, mod):
+        self.button_dl = tK.Button(frame, text="Download checked mods", command=self.start_download)
+        self.button_dl.pack(fill=tK.X, anchor=tK.S)
         
+        self.button_mo = tK.Button(frame, text="Send checked mods to Mod Organizer", command=self.send_to_mo)
+        self.button_mo.pack(fill=tK.X, anchor=tK.S)
     
-        r = ModDlEntry(parent, mod, self.downloaddir)
-        return r
+    def send_to_mo(self):
+        for x in self.modwidgets:
+            if x.is_download_checked():
+                x.set_status("+MO", "In Queue for MO")
+                MOQUEUE.put(x)
+    
     
     def start_download(self):
         if not DLQUEUE:
@@ -247,8 +254,9 @@ class DownloadModules:
             os.mkdir(self.downloaddir)
 
         for m in self.modwidgets:
-            if m.download_checked():
+            if m.is_download_checked():
                 DLQUEUE.put(m)
+
 
 class ModuleInfo:
     
