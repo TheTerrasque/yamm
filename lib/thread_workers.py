@@ -60,8 +60,7 @@ def downloader_thread(queue, updatelock):
             set_widget_state("\o/", "Completed")
             if not widget.mod.check_file(widget.path, True):
                 set_widget_state("/o\\", "File damaged")
-        
-    
+
     while True:
         handle_next_entry()
 

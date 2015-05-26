@@ -1,13 +1,18 @@
 import Tkinter as tK
 import tkMessageBox
 import tkSimpleDialog
-from .utils import get_filesize_display
+from .utils import get_filesize_display, get_base_path
 import os
 from .thread_workers import start_threads
 import webbrowser
 
 import logging
 L = logging.getLogger("YAMM.YammiUI.TK")
+
+try:
+    import _winreg as winreg
+except ImportError:
+    winreg = None
 
 
 def open_window(module, data):
@@ -20,6 +25,7 @@ CALLBACK = {
     "downloadmod": lambda modlist: open_window(DownloadModules, [modlist]),
     "services": lambda mdb: open_window(ServiceList, [mdb]),
     "download_complete": lambda mod: mod,
+    "settings": lambda x: open_window(Settings, []),
 }
 
 DLQUEUE = None
@@ -41,6 +47,7 @@ class CreateToolTip(object):
         self.text = text
         self.widget.bind("<Enter>", self.enter)
         self.widget.bind("<Leave>", self.close)
+    
     def enter(self, event=None):
         x = y = 0
         x, y, cx, cy = self.widget.bbox("insert")
@@ -55,10 +62,24 @@ class CreateToolTip(object):
                        background='yellow', relief='solid', borderwidth=1,
                        font=("times", "8", "normal"))
         label.pack(ipadx=1)
+    
     def close(self, event=None):
         if self.tw:
             self.tw.destroy()
 
+
+class Settings:
+    def __init__(self, master):
+        self.master = master
+        self.create_widgets(master)
+        
+    def create_widgets(self, master):
+        master.title("YAMM Settings")
+        master.minsize(width=300,  height=500)
+        
+        frame = tK.Frame(master)
+        frame.pack(fill=tK.BOTH, expand=1)
+    
 
 class ServiceList:
     def __init__(self, master, mdb):
@@ -362,6 +383,9 @@ class Search:
         self.button_search = tK.Button(frame, text="Services", command=self.show_services)
         self.button_search.pack(side=tK.LEFT)
         
+        self.button_search = tK.Button(frame, text="Settings", command=self.show_settings)
+        self.button_search.pack(side=tK.LEFT)
+        
         frame2 = tK.Frame(master)
         frame2.pack(fill=tK.BOTH, expand=1)
         
@@ -369,6 +393,9 @@ class Search:
         self.modsbox.pack(fill=tK.BOTH, expand=1)
         
         self.modsbox.bind("<Double-Button-1>", self.show_module)
+
+    def show_settings(self):
+        CALLBACK["settings"](None)
 
     def show_services(self):
         CALLBACK["services"](self.mod_db)

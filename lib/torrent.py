@@ -38,9 +38,9 @@ class TransmissionRPC(object):
     def get_torrents(self, fields = ["id", "name", "percentDone", "totalSize"]):
         return self._request("torrent-get", {"fields":fields})
 
-    def add_torrent(self, download_path, torrent):
-        r = self._request("torrent-add", {"filename":torrent, "download-dir": download_path})
-        return r
+    def add_torrent(self, download_path, torrent_link):
+        r = self._request("torrent-add", {"filename":torrent_link, "download-dir": download_path})
+        return r["arguments"]["id"]
     
     def version(self):
         return self._request("session-get")["arguments"]["version"]
