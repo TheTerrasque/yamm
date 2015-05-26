@@ -70,9 +70,12 @@ def cmd_args():
 
 if __name__ == "__main__":
     args = cmd_args()
+    mod = None
+    
     if args.url:
         try:
             mod = handle_url_schema(args.url)
         except:
             L.exception("Could not handle url %s", args.url)
+            
     main(mod)
