@@ -1,7 +1,11 @@
 from utility.peewee import *
 import random
 
-db = SqliteDatabase('mods.db')
+from utils import get_base_path, os
+
+dbpath = os.path.join(get_base_path(), "modinfo.db")
+
+db = SqliteDatabase(dbpath)
 
 class BaseModel(Model):
     class Meta:
@@ -17,6 +21,7 @@ class ModService(BaseModel):
     mirrors = TextField()
     active_mirror = CharField(null=True)
     etag = CharField(null=True)
+    updated = DateTimeField(null=True)
     
     def set_mirrors(self, mirrorlist):
         self.mirrors = "|".join(mirrorlist)

@@ -1,5 +1,5 @@
 import re
-import logging
+#import logging
 
 import hashlib
 import urllib2
@@ -11,7 +11,7 @@ import json
 
 import os.path
 
-L = logging.getLogger("YAMM.utils")
+#L = logging.getLogger("YAMM.utils")
 
 hasher = hashlib.sha256
 BLOCKSIZE = 65536
@@ -19,7 +19,6 @@ BLOCKSIZE = 65536
 
 def get_base_path():
     return os.path.dirname(os.path.dirname(__file__))
-
 
 # Credits: http://stackoverflow.com/questions/1714027/version-number-comparison
 def compare_version(version1, version2):
@@ -81,11 +80,9 @@ def get_json(url, etag=None):
     
     if headers.get("Content-Encoding") == "gzip":
         buf = StringIO( url_handle.read() )
-        L.debug("GZIP response")
         f = gzip.GzipFile(fileobj=buf)
         jdata = f
     else:
-        L.debug("Uncompressed response")
         jdata = url_handle
 
     etag = headers.getheader("ETag")
