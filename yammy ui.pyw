@@ -6,7 +6,7 @@ logfile = os.path.join(get_base_path(), "ui.log")
 
 logging.basicConfig(filename=logfile, filemode="w")
 
-from lib.gui_components import initialize_uimodules, Search, open_window, DownloadModules, CALLBACK, tkMessageBox
+from lib.gui_components import initialize_uimodules, Search, open_window, DownloadModules, CALLBACK, tkMessageBox, Setup
 
 from lib import moddb
 import os.path
@@ -63,6 +63,7 @@ def cmd_args():
     parser = argparse.ArgumentParser(description='YAMM ui module')
 
     parser.add_argument('--url', help='URL scheme handling')
+    parser.add_argument('--setup', help='Handle setup. Needs elevated access', action="store_true")
     
     args = parser.parse_args()
     return args
@@ -71,11 +72,16 @@ def cmd_args():
 if __name__ == "__main__":
     args = cmd_args()
     mod = None
-    
-    if args.url:
-        try:
-            mod = handle_url_schema(args.url)
-        except:
-            L.exception("Could not handle url %s", args.url)
-            
-    main(mod)
+
+    if args.setup:
+        root = tK.Tk()
+        app = Setup(root)
+        root.mainloop()
+    else:
+        if args.url:
+            try:
+                mod = handle_url_schema(args.url)
+            except:
+                L.exception("Could not handle url %s", args.url)
+                
+        main(mod)

@@ -1,10 +1,13 @@
 import Tkinter as tK
 import tkMessageBox
 import tkSimpleDialog
+import tkFileDialog
 from .utils import get_filesize_display, get_base_path
 import os
 from .thread_workers import start_threads
 import webbrowser
+
+from .system_integration import setup_modorganizer, setup_registry
 
 import logging
 L = logging.getLogger("YAMM.YammiUI.TK")
@@ -68,6 +71,43 @@ class CreateToolTip(object):
             self.tw.destroy()
 
 
+class Setup:
+    def __init__(self, master):
+        self.master = master
+        self.create_widgets(master)
+        
+    def create_widgets(self, master):
+        master.title("YAMM Setup")
+        master.minsize(width=350, height=100)
+        
+        frame = tK.Frame(master)
+        frame.pack(fill=tK.BOTH, expand=1)
+        
+        tK.Label(frame, text="Setup of YAMM system integration").pack(fill=tK.X)
+        
+        tK.Button(frame, text="Install YAMM URL handler", command=self.setup_url).pack(fill=tK.X)
+        tK.Button(frame, text="Install Mod Organizer plugin - needs version 1.3.5 or later", command=self.setup_mo).pack(fill=tK.X)
+
+    def setup_url(self):
+        try:
+            setup_registry()
+            tkMessageBox.showinfo("Installed", "URL Handler for YAMM installed")
+        except:
+            tkMessageBox.showerror("Problem setting up url handler", u"Could not set up the URL handler for YAMM")
+        
+    def setup_mo(self):
+        
+        try:
+            path = None
+            r = setup_modorganizer(path)
+            while not r and tkMessageBox.askyesno("Find path", "Could not find Mod Organizer. Do you want to manually find the path?"):
+                path = tkFileDialog.askdirectory(parent=self.master, mustexist=True, title="Choose Mod Organizer directory")
+                r = setup_modorganizer(path)
+            if r:
+                tkMessageBox.showinfo("Installed", "Mod Organizer plugin for YAMM was installed")
+        except:
+            pass
+        
 class Settings:
     def __init__(self, master):
         self.master = master

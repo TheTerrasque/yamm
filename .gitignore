@@ -5,3 +5,5 @@ example/files/
 *.komodoproject
 files/
 mods/
+*.log
+*.html

@@ -4,12 +4,10 @@ from lib.utils import get_base_path
 import shutil
 
 def setup_registry():
-    print "Installing URL handler.."
     python = r"C:\Python27\pythonw.exe"
     this = os.path.join(get_base_path(), "yammy ui.pyw")
     
     if not os.path.exists(python):
-        print("Could not find python at %s" % python)
         return
     
     yamm = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, r"yamm")
@@ -23,26 +21,30 @@ def setup_registry():
     winreg.CloseKey(yamm_cmd)
     winreg.CloseKey(yamm)
     
-    print "URL Handler installed"
+    return True
 
-def setup_modorganizer():
+def setup_modorganizer(path = None):
+    exe = "ModOrganizer.exe"
+    script = "plugin_MO.py"
+    src = os.path.join(get_base_path(), "utils", script)
+    
+    def install(path):
+        target = os.path.join(path, "plugins", script)
+        shutil.copyfile(src, target)
+    
     paths = [
         r"C:\Program Files (x86)\Mod Organizer",
         r"C:\Program Files\Mod Organizer",
     ]
-    exe = "ModOrganizer.exe"
-    
-    script = "plugin_MO.py"
-    
-    src = os.path.join(get_base_path(), "utils", script)
+   
+    if path:
+        paths.append(path)
     
     for path in paths:
         full = os.path.join(path, exe)
         if os.path.exists(full):
-            print "MO Found at", path
-            target = os.path.join(path, "plugins", script)
-            shutil.copyfile(src, target)
-            print "MO plugin installed"
+            install(path)
+            return True
             
 if __name__ == "__main__":
     print "Starting setup of YAMM\n\n"
