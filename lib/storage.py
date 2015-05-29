@@ -1,9 +1,16 @@
 from utility.peewee import *
 import random
+import os
 
 from utils import get_base_path, os
 
-dbpath = os.path.join(get_base_path(), "modinfo.db")
+basepath = os.path.join(get_base_path(), "data")
+try:
+    os.mkdir(basepath)
+except WindowsError:
+    pass
+
+dbpath = os.path.join(basepath, "modinfo.db")
 
 db = SqliteDatabase(dbpath)
 
@@ -44,6 +51,8 @@ class ModEntry(BaseModel):
     homepage = CharField(null=True)
     author = CharField(null=True)
     updated = DateTimeField(null=True)
+    magnet = CharField(null=True)
+    torrent = CharField(null=True)
 
 DEPENDENCY = [
     (0, "Requires"),

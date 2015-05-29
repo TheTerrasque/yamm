@@ -11,6 +11,7 @@ import os.path
 import os
 
 import argparse
+
 def create_argparse():
     parser = argparse.ArgumentParser(description='Yet Another Mod Manager')
     parser.add_argument('module', metavar='MODULE', help='Submodule', choices=F)

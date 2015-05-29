@@ -221,7 +221,7 @@ class ServiceUpdater(object):
         modentry.service = self.service
         
         # Optional entries
-        for field in ["description", "filehash", "filesize", "homepage", "author", "category", "filename"]:
+        for field in ["description", "filehash", "filesize", "homepage", "author", "category", "filename", "magnet", "torrent"]:
             if mod.get(field):
                 setattr(modentry, field, mod[field])
         
