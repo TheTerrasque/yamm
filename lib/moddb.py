@@ -155,10 +155,13 @@ class ModDb(object):
         service.set_mirrors(data["service"]["filelocations"])
         service.save()
         L.info("Service %s added", service.name)
-        return service
+        return service, data["service"].get("recommend", [])
     
     def remove_service(self, service):
-        service.delete_instance(recursive=True, delete_nullable=True)
+        with db.transaction():
+            for mod in ModEntry.select().filter(ModEntry.service == service):
+                mod.delete_instance(recursive=True, delete_nullable=True)
+            service.delete_instance(recursive=True, delete_nullable=True)    
     
     def get_module(self, modulename):
         e = get_mod_by_name(modulename)

@@ -1,4 +1,33 @@
 import Tkinter as tK
+ROOT = tK.Tk()
+class Loader:
+    def __init__(self, root):
+        self.root = root
+        self.show()
+        
+    def show(self):  
+        self.top = tK.Toplevel()
+        self.top.overrideredirect(1)
+
+        frame = tK.Frame(self.top)
+        frame.pack(fill=tK.BOTH, expand=1)
+        tK.Label(frame, text="Loading YAMM..", font=("Helvetica", 32)).pack(fill=tK.X)
+        
+        width = 200
+        height = 50
+        scrnWt = (self.root.winfo_screenwidth() /2) - (width / 2)
+        scrnHt = (self.root.winfo_screenheight()/2) - (height / 2)
+        self.top.geometry( '+%d+%d' % (scrnWt, scrnHt) )
+
+        self.root.withdraw()        
+        self.top.update( )
+
+    def exit(self):
+        self.root.deiconify()
+        self.top.destroy()
+
+LOADER = Loader(ROOT)
+
 import logging
 from lib.utils import get_base_path, os
 
@@ -24,38 +53,43 @@ CALLBACK["downloadmod"] = lambda modlist: open_window(DownloadModules, [modlist,
 L.debug("Download directory: %s", DLDIR)
 
 def handle_url_schema(url):
-    print url
-    root = tK.Tk()
-    root.withdraw()
     result = None
     
-    schema, command, value = url.split(":", 2)
+    def add_a_service(url, pre=""):
+        if mdb.get_services().filter(url=url).count():
+            #if not pre:
+            #    tkMessageBox.showinfo("Already added", "Service is already in database")
+            return
+        if tkMessageBox.askyesno("Add service", "%sDo you want to add this service? \n\n%s" % (pre,value), parent=ROOT):
+            service, suggests = mdb.add_service(url)
+            for suggest in suggests:
+                preinfo = "%s suggests you should also add this service.\n\n" % service.name
+                add_a_service(suggest, preinfo)
+        
+    command, value = url.split(":", 1)
     if command == "service":
-        if tkMessageBox.askyesno("Add service", "Do you want to add this service? \n\n%s" % value):
-            mdb.add_service(value)
+        add_a_service(value)
 
-    if command == "mod":
+    if command == "mod":            
         result = mdb.get_module(value)
         if not result:
             tkMessageBox.showerror("Could not find mod", "Could not find the mod '%s' in the database." % value)
-
-    root.destroy()
     return result
 
-def main(mod=None):    
+def main(mod=None):
+    LOADER.exit()
     initialize_uimodules()
-    root = tK.Tk()
     
-    app = Search(root, mdb)
+    app = Search(ROOT, mdb)
     
     if mod:
         CALLBACK["showmod"](mod)
     
-    root.mainloop()
+    ROOT.mainloop()
     
     # Usually the root is already destroyed by now (X button to close window)
     try:
-        root.destroy()
+        ROOT.destroy()
     except:
         pass
 
@@ -68,19 +102,22 @@ def cmd_args():
     args = parser.parse_args()
     return args
 
-
 if __name__ == "__main__":
     args = cmd_args()
     mod = None
 
     if args.setup:
-        root = tK.Tk()
-        app = Setup(root)
-        root.mainloop()
+        LOADER.exit()
+        app = Setup(ROOT)
+        ROOT.mainloop()
     else:
         if args.url:
+            
             try:
-                mod = handle_url_schema(args.url)
+                schema, data = args.url.split(":", 1)
+                if schema == "yamm":
+                    for val in data.split("|"):
+                        mod = handle_url_schema(val)
             except:
                 L.exception("Could not handle url %s", args.url)
                 

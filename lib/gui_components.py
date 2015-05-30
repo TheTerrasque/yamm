@@ -40,6 +40,17 @@ def initialize_uimodules():
     DLQUEUE, MOQUEUE = start_threads()
     
 
+class BaseWindow:
+    def __init__(self, master, *args, **kwargs):
+        self.master = master
+        self.create_widgets(master)
+        master.focus()
+        self.init(*args, **kwargs)
+
+    def init(self, *args, **kwargs):
+        pass
+    
+
 class CreateToolTip(object):
     '''
     create a tooltip for a given widget
@@ -71,10 +82,7 @@ class CreateToolTip(object):
             self.tw.destroy()
 
 
-class Setup:
-    def __init__(self, master):
-        self.master = master
-        self.create_widgets(master)
+class Setup(BaseWindow):
         
     def create_widgets(self, master):
         master.title("YAMM Setup")
@@ -108,10 +116,7 @@ class Setup:
         except:
             pass
         
-class Settings:
-    def __init__(self, master):
-        self.master = master
-        self.create_widgets(master)
+class Settings(BaseWindow):
         
     def create_widgets(self, master):
         master.title("YAMM Settings")
@@ -121,14 +126,12 @@ class Settings:
         frame.pack(fill=tK.BOTH, expand=1)
     
 
-class ServiceList:
-    def __init__(self, master, mdb):
+class ServiceList(BaseWindow):
+    def init(self, mdb):
         self.mdb = mdb
-        self.master = master
-        self.setup_widgets(master)
         self.show_services()
 
-    def setup_widgets(self, master):
+    def create_widgets(self, master):
         master.title("YAMM Services")
         master.minsize(width=300,  height=500)
 
@@ -185,11 +188,11 @@ class ModDlEntry:
         self.path =  mod.mod.filename and os.path.join(self.downloaddir, mod.mod.filename) or None
         self.required_by = ["Some modules here"]
         self.recommended_by = []
-        self.create_widgets()
+        self.create_widgets(parent)
         self.set_data()
                        
-    def create_widgets(self):
-        frame = tK.Frame(self.parent)
+    def create_widgets(self, master):
+        frame = tK.Frame(master)
         self.frame = frame
         frame.config(relief=tK.SUNKEN, bd=1)
         frame.pack(fill=tK.BOTH)
@@ -214,10 +217,7 @@ class ModDlEntry:
     
         self.status = tK.Label(frame, text="State")
         self.status.pack(**pack)
-        
-        #self.relation = tK.Label(frame, text="Relation")
-        #self.relation.pack(**pack)
-        
+              
         self.size = tK.Label(frame, text="??? kb")
         self.size.pack(**pack)
         
@@ -275,6 +275,7 @@ class DownloadModules:
         self.mods = modlist
         self.setup_widgets(master)
         self.master = master
+        master.focus()
 
     def setup_widgets(self, master):
         master.title("Modules Download Window")
@@ -306,7 +307,6 @@ class DownloadModules:
                 x.set_status("+MO", "In Queue for MO")
                 MOQUEUE.put(x)
     
-    
     def start_download(self):
         if not DLQUEUE:
             L.critical("ERROR! QUEUE NOT CREATED!")
@@ -318,12 +318,12 @@ class DownloadModules:
             if m.is_download_checked():
                 DLQUEUE.put(m)
 
-
 class ModuleInfo:
     
     def __init__(self, master, mod):
         self.mod = mod
         self.setup_widgets(master)
+        master.focus()
 
     def show_webpage(self, e):
         if self.mod.mod.homepage:
@@ -451,7 +451,7 @@ class Search:
         frame = tK.Frame(master)
         frame.pack()
         
-        button_update = tK.Button(frame, text="Update database", command=self.mod_db.update_services)
+        button_update = tK.Button(frame, text="Update database", command=self.update_data)
         button_update.pack()
 
         self.status = tK.StringVar()
@@ -461,7 +461,8 @@ class Search:
     # -------------------------------------------------
 
     def update_data(self, fetch=True):
-        self.mod_db.update_services()
+        if fetch:
+            self.mod_db.update_services()
         self.status.set("%s modules in database" % self.mod_db.get_module_count())
         self.list_modules(self.mod_db.get_modules_not_in_category("framework"))
 
