@@ -158,7 +158,7 @@ class ServiceList:
         for index in self.servicebox.curselection():
             service = self.services[index]
             if tkMessageBox.askyesno("Remove service", "Are you sure you want to remove the service '%s'?" % service.name):
-                service.delete()
+                self.mdb.remove_service(service)
                 break
         self.show_services()
 
@@ -333,8 +333,10 @@ class ModuleInfo:
         master.title("Module %s" % self.mod.mod.name)
         frame = tK.Frame(master)
         frame.pack(fill=tK.BOTH, expand=1)
-        
-        title = tK.Label(frame, text="%s v%s" % (self.mod.mod.name, self.mod.mod.version))
+        v = "%s v%s" % (self.mod.mod.name, self.mod.mod.version)
+        if self.mod.mod.author:
+            v = "%s by %s" % (v, self.mod.mod.author)
+        title = tK.Label(frame, text=v)
         title.pack()
         
         description = tK.Text(frame)

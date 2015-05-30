@@ -157,6 +157,9 @@ class ModDb(object):
         L.info("Service %s added", service.name)
         return service
     
+    def remove_service(self, service):
+        service.delete_instance(recursive=True, delete_nullable=True)
+    
     def get_module(self, modulename):
         e = get_mod_by_name(modulename)
         if e:
