@@ -333,14 +333,15 @@ class ModuleInfo:
         master.title("Module %s" % self.mod.mod.name)
         frame = tK.Frame(master)
         frame.pack(fill=tK.BOTH, expand=1)
-        v = "%s v%s" % (self.mod.mod.name, self.mod.mod.version)
+        v = "%s %s" % (self.mod.mod.name, self.mod.mod.version)
         if self.mod.mod.author:
             v = "%s by %s" % (v, self.mod.mod.author)
         title = tK.Label(frame, text=v)
         title.pack()
         
         description = tK.Text(frame)
-        description.insert(tK.END, self.mod.mod.description)
+        if self.mod.mod.description:
+            description.insert(tK.END, self.mod.mod.description)
         description.pack(expand=1, fill=tK.BOTH)
         
         if self.mod.mod.homepage:

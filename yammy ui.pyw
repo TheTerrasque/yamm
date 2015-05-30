@@ -69,7 +69,8 @@ def handle_url_schema(url):
     command, value = url.split(":", 1)
     if command == "service":
         add_a_service(value)
-
+        mdb.update_services()
+        
     if command == "mod":            
         result = mdb.get_module(value)
         if not result:
