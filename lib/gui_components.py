@@ -481,7 +481,7 @@ class Search:
     def set_default_services(self):
         if not self.mod_db.get_services().count():
             self.status.set("Doing initial setup..")
-            self.mod_db.add_service("http://terra.thelazy.net/yamm/mods.json")
+            #self.mod_db.add_service("http://terra.thelazy.net/yamm/mods.json")
             self.update_data()
         else:
             self.update_data(False)
