@@ -158,10 +158,8 @@ class ModDb(object):
         return service, data["service"].get("recommend", [])
     
     def remove_service(self, service):
-        with db.transaction():
-            for mod in ModEntry.select().filter(ModEntry.service == service):
-                mod.delete_instance(recursive=True, delete_nullable=True)
-            service.delete_instance(recursive=True, delete_nullable=True)    
+        service.clear_mods()
+        service.delete_instance(recursive=True, delete_nullable=True)    
     
     def get_module(self, modulename):
         e = get_mod_by_name(modulename)
@@ -247,7 +245,7 @@ class ServiceUpdater(object):
             self.update_mods(data["mods"])
         
     def update_mods(self, modlist):
-        ModEntry.delete().where(ModEntry.service == self.service).execute()
+        self.service.clear_mods()
         
         for mod in modlist:
             modentry, new_entry = self.save_mod_instance(mod)

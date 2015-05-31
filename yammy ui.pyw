@@ -11,7 +11,7 @@ class Loader:
 
         frame = tK.Frame(self.top)
         frame.pack(fill=tK.BOTH, expand=1)
-        tK.Label(frame, text="Loading YAMM..", font=("Helvetica", 32)).pack(fill=tK.X)
+        tK.Label(frame, text="Loading YAMM..", font=("Helvetica", 32), padx=10, pady=10, relief=tK.RAISED).pack(fill=tK.X)
         
         width = 200
         height = 50
@@ -60,16 +60,17 @@ def handle_url_schema(url):
             #if not pre:
             #    tkMessageBox.showinfo("Already added", "Service is already in database")
             return
-        if tkMessageBox.askyesno("Add service", "%sDo you want to add this service? \n\n%s" % (pre,value), parent=ROOT):
+        if tkMessageBox.askyesno("Add service", "%sDo you want to add this service? \n\n%s" % (pre, url), parent=ROOT):
             service, suggests = mdb.add_service(url)
             for suggest in suggests:
-                preinfo = "%s suggests you should also add this service.\n\n" % service.name
+                preinfo = "'%s' suggests you should also add this service.\n\n" % service.name
                 add_a_service(suggest, preinfo)
+            return True
         
     command, value = url.split(":", 1)
     if command == "service":
-        add_a_service(value)
-        mdb.update_services()
+        if add_a_service(value):
+            mdb.update_services()
         
     if command == "mod":            
         result = mdb.get_module(value)

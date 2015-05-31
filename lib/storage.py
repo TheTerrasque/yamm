@@ -36,6 +36,12 @@ class ModService(BaseModel):
     def get_mirrors(self):
         return self.mirrors.split("|")
     
+    def clear_mods(self):
+        with db.transaction():
+            for mod in ModEntry.select().filter(ModEntry.service == self):
+                mod.delete_instance(recursive=True, delete_nullable=True)
+    
+    
     def get_mirror(self):
         return self.active_mirror or random.choice(self.get_mirrors())
 
