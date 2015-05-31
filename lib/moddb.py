@@ -115,6 +115,12 @@ class ModInstance(object):
             return h == self.mod.filehash
         return approve_if_no_dbhash
     
+    def get_torrent_link(self):
+        if self.mod.torrent:
+            return self.mod.torrent
+        if self.mod.magnet:
+            return "magnet:?xt=urn:btih:%s&dn=%s" % (self.mod.magnet, self.mod.name)
+    
     def get_urls(self):
         """
         Return download urls for mod archive

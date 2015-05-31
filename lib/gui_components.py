@@ -125,6 +125,9 @@ class Settings(BaseWindow):
         frame = tK.Frame(master)
         frame.pack(fill=tK.BOTH, expand=1)
     
+    
+        title = tK.Label(frame, text="Nothing here yet")
+        title.pack(fill=tK.X)
 
 class ServiceList(BaseWindow):
     def init(self, mdb):

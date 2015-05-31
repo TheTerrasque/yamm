@@ -2,7 +2,7 @@ from utility.peewee import *
 import random
 import os
 
-from utils import get_base_path, os
+from utils import get_base_path
 
 basepath = os.path.join(get_base_path(), "data")
 try:
