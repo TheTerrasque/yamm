@@ -1,7 +1,7 @@
 from utility.peewee import *
 import random
 import os
-
+from urlparse import urljoin
 from utils import get_base_path
 
 basepath = os.path.join(get_base_path(), "data")
@@ -29,18 +29,22 @@ class ModService(BaseModel):
     active_mirror = CharField(null=True)
     etag = CharField(null=True)
     updated = DateTimeField(null=True)
+    torrent = CharField(null=True)
     
     def set_mirrors(self, mirrorlist):
         self.mirrors = "|".join(mirrorlist)
     
     def get_mirrors(self):
-        return self.mirrors.split("|")
+        return [urljoin(self.url, x) for x in self.mirrors.split("|")]
     
     def clear_mods(self):
         with db.transaction():
             for mod in ModEntry.select().filter(ModEntry.service == self):
                 mod.delete_instance(recursive=True, delete_nullable=True)
     
+    def get_torrent_path(self):
+        if self.torrent:
+            return urljoin(self.url, self.torrent)
     
     def get_mirror(self):
         return self.active_mirror or random.choice(self.get_mirrors())

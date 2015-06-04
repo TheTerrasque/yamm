@@ -159,6 +159,7 @@ class ModDb(object):
         service = ModService(url=json_url)
         service.name = data["service"]["name"]
         service.set_mirrors(data["service"]["filelocations"])
+        service.torrent = data["service"].get("torrents", "")
         service.save()
         L.info("Service %s added", service.name)
         return service, data["service"].get("recommend", [])
@@ -208,6 +209,7 @@ class ServiceUpdater(object):
         self.service.name = data["service"]["name"]
         self.service.etag = etag
         self.service.set_mirrors(data["service"]["filelocations"])
+        self.service.torrent = data["service"].get("torrents", "")
         self.service.save()
 
     def set_dependency_relation(self, modentry, dependencies, relation):
