@@ -2,9 +2,9 @@ from utility.peewee import *
 import random
 import os
 from urlparse import urljoin
-from utils import get_base_path
+from utils import get_config_path
 
-basepath = os.path.join(get_base_path(), "data")
+basepath = os.path.join(get_config_path(), "data")
 try:
     os.mkdir(basepath)
 except WindowsError:

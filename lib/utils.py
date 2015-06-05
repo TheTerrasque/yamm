@@ -16,8 +16,16 @@ import os.path
 hasher = hashlib.sha256
 BLOCKSIZE = 65536
 
+def get_config_path():
+    base = os.path.expanduser("~")
+    p = os.path.join(base, "YAMM")
+    try:
+        os.makedirs(p)
+    except:
+        pass
+    return p
 
-def get_base_path():
+def get_exec_path():
     return os.path.dirname(os.path.dirname(__file__))
 
 # Credits: http://stackoverflow.com/questions/1714027/version-number-comparison

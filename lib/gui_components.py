@@ -2,7 +2,7 @@ import Tkinter as tK
 import tkMessageBox
 import tkSimpleDialog
 import tkFileDialog
-from .utils import get_filesize_display, get_base_path
+from .utils import get_filesize_display
 import os
 from .thread_workers import start_threads
 import webbrowser

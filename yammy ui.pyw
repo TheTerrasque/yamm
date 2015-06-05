@@ -29,9 +29,9 @@ class Loader:
 LOADER = Loader(ROOT)
 
 import logging
-from lib.utils import get_base_path, os
+from lib.utils import get_config_path, os
 
-logfile = os.path.join(get_base_path(), "ui.log")
+logfile = os.path.join(get_config_path(), "ui.log")
 
 logging.basicConfig(filename=logfile, filemode="w")
 
@@ -44,7 +44,7 @@ import argparse
 
 mdb = moddb.ModDb()
 
-DLDIR = os.path.join(get_base_path(), "files")
+DLDIR = os.path.join(get_config_path(), "files")
 
 L = logging.getLogger("YAMM.YammiUI")
 

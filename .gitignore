@@ -7,3 +7,5 @@ files/
 mods/
 *.log
 *.html
+build/
+dist/
