@@ -116,8 +116,8 @@ class ModInstance(object):
         return approve_if_no_dbhash
     
     def get_torrent_link(self):
-        if self.mod.torrent:
-            return self.mod.torrent
+        if self.mod.torrent and self.mod.service.torrent:
+            return self.mod.service.torrent + self.mod.torrent
         if self.mod.magnet:
             return "magnet:?xt=urn:btih:%s&dn=%s" % (self.mod.magnet, self.mod.name)
     
