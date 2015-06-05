@@ -24,7 +24,7 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=dist\installer
 OutputBaseFilename=setup_yamm
-Compression=lzma2/max
+Compression=lzma
 SolidCompression=yes
 
 [Languages]
@@ -32,6 +32,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "yammurlhandler"; Description: "Setup YAMM link handling"; GroupDescription: "System Integration"
+Name: "moplugin"; Description: "Install Mod Organizer (v1.3.5+) plugin"; GroupDescription: "System Integration"
 
 [Files]
 Source: "dist\yammy ui\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
@@ -43,4 +45,9 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--setup"
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--setup"; Tasks: moplugin
+
+[Registry]
+Root: HKCR; Subkey: "yamm"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: yammurlhandler
+Root: HKCR; Subkey: "yamm"; ValueType: string; ValueName: ""; ValueData: "URL:yamm"; Tasks: yammurlhandler
+Root: HKCR; Subkey: "yamm\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" --url ""%1"""; Tasks: yammurlhandler

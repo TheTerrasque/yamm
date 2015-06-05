@@ -93,8 +93,11 @@ class Setup(BaseWindow):
         
         tK.Label(frame, text="Setup of YAMM system integration").pack(fill=tK.X)
         
-        tK.Button(frame, text="Install YAMM URL handler", command=self.setup_url).pack(fill=tK.X)
-        tK.Button(frame, text="Install Mod Organizer plugin - needs version 1.3.5 or later", command=self.setup_mo).pack(fill=tK.X)
+        # tK.Button(frame, text="Install YAMM URL handler", command=self.setup_url).pack(fill=tK.X)
+        # tK.Button(frame, text="Install Mod Organizer plugin - needs version 1.3.5 or later", command=self.setup_mo).pack(fill=tK.X)
+        
+        self.setup_mo()
+        master.destroy()
 
     def setup_url(self):
         try:
