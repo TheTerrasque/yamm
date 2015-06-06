@@ -2,10 +2,10 @@ import Tkinter as tK
 import tkMessageBox
 import tkSimpleDialog
 import tkFileDialog
-from .utils import get_filesize_display
+from .utils import get_filesize_display, get_config_path
 import os
-from .thread_workers import start_threads
 import webbrowser
+from .workers import ModWorkorder, WorkHandler
 
 from .system_integration import setup_modorganizer, setup_registry
 
@@ -31,14 +31,12 @@ CALLBACK = {
     "settings": lambda x: open_window(Settings, []),
 }
 
-DLQUEUE = None
-MOQUEUE = None
+WORKER = None
 
 def initialize_uimodules():
-    global DLQUEUE
-    global MOQUEUE
-    DLQUEUE, MOQUEUE = start_threads()
-    
+    global WORKER
+    path = os.path.join(get_config_path(), "files")
+    WORKER = WorkHandler(path)
 
 class BaseWindow:
     def __init__(self, master, *args, **kwargs):
@@ -127,7 +125,6 @@ class Settings(BaseWindow):
         
         frame = tK.Frame(master)
         frame.pack(fill=tK.BOTH, expand=1)
-    
     
         title = tK.Label(frame, text="Nothing here yet")
         title.pack(fill=tK.X)
@@ -246,8 +243,12 @@ class ModDlEntry:
         return self.dlvar.get()
 
     def install_in_mo(self):
-        MOQUEUE.put(self)
+        o = ModWorkorder(self.mod, "mo-rpc", self.callback)
+        WORKER.add_work(o)
         
+    def callback(self, entry):
+        self.set_status(entry.get_mini_status(), entry.get_status())
+    
     def set_data(self):
         self.dlcheck.select()
         
@@ -311,18 +312,14 @@ class DownloadModules:
         for x in self.modwidgets:
             if x.is_download_checked():
                 x.set_status("+MO", "In Queue for MO")
-                MOQUEUE.put(x)
+                o = ModWorkorder(x.mod, "mo-rpc", x.callback)
+                WORKER.add_work(o)
     
     def start_download(self):
-        if not DLQUEUE:
-            L.critical("ERROR! QUEUE NOT CREATED!")
-            
-        if not os.path.exists(self.downloaddir):
-            os.mkdir(self.downloaddir)
-
         for m in self.modwidgets:
             if m.is_download_checked():
-                DLQUEUE.put(m)
+                o = ModWorkorder(m.mod, "dlhttp", m.callback)
+                WORKER.add_work(o)
 
 class ModuleInfo:
     
