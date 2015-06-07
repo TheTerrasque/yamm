@@ -1,15 +1,16 @@
-import urllib
 import os
 from threading import Thread, Lock
 from Queue import Queue
 
 import mo_rpc
+import requests
 
 STATUS = {
     0: (" I ", "Initializing"),
     1: (" Q ", "Queued"),
     2: (" D ", "Downloading"),
     3: (" C ", "Complete"),
+    "CHECKSUM_ERR": ("!!!", "Checksum failed"),
     "Merr": ("-MO", "Could not connect to MO"),
     "Mwait": ("MO>", "Waiting for Mod Organizer"),
     "Mexist": ("MO!", "Mod already installed"),
@@ -18,13 +19,35 @@ STATUS = {
     "Mmiss": ("---", "No mod file to install"),
 }
 
-def requests_download_file(url, outfile, callback_func=None, byterange=None, chunksize=256*1024):
-    r = requests.get(url, stream=True)
-    with open(outfile, 'wb') as f:
+def requests_download_file(url, outfile, callback_func=None, try_resume=True, chunksize=64*1024):
+    headers = {}
+    filemode = "wb"
+    existing = 0
+    chunk_offset = 0
+    
+    if try_resume and os.path.exists(outfile):
+        existing = os.path.getsize(outfile)
+        headers["Range"] = "bytes=%s-" % existing
+    
+    r = requests.get(url, stream=True, headers = headers)
+    filesize = int(r.headers['content-length'])
+    
+    #If server responds correctly to a range request, append to existing file
+    if r.status_code == 206:
+        filemode = "ab"
+        filesize = filesize + existing
+        chunk_offset = existing / chunksize
+        
+    else:
+        if not r.status_code == requests.codes.ok:
+            #print "Got error status code", r.status_code
+            return
+    
+    with open(outfile, filemode) as f:
         for count, chunk in enumerate(r.iter_content(chunk_size=chunksize)):
             f.write(chunk)
             if callback_func:
-                callback_func(count, chunksize, r.content)
+                callback_func(count + chunk_offset, chunksize, filesize)
             
 def queue_thread_handler(queue, workClass):
     worker = workClass()
@@ -38,14 +61,12 @@ class BaseWorker(object):
 class HttpDownload(BaseWorker):
     def process(self, entry):
         def hook(count, blocksize, totalsize):
-            if count % 15 != 0: # Limit how often updates are run
-                return
             dl = count * blocksize
             percent = int(( float(dl) / totalsize) * 100)
             entry._progress(percent, totalsize)
             
-        urllib.urlretrieve(entry.mod.get_url(), entry.file_path(), hook)
-        entry._update(3)
+        requests_download_file(entry.mod.get_url(), entry.file_path(), hook)
+        entry._update(3, verify=True)
  
 class ModOrganizer(BaseWorker):
     def __init__(self):
@@ -90,8 +111,13 @@ class ModWorkorder(object):
     def file_path(self):
         return os.path.join(self.parent.folder, self.mod.mod.filename)
         
-    def _update(self, status):
+    def _update(self, status, verify=False):
         self.status = status
+        
+        if verify:
+            if not self.mod.check_file(self.file_path()):
+                self.status = "CHECKSUM_ERR"
+        
         if self.callback:
             with self.parent.UIlock:
                 self.callback(self)

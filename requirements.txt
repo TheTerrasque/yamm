@@ -1,0 +1,2 @@
+# for use with pip
+requests==2.7.0
