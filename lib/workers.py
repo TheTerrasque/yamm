@@ -50,14 +50,21 @@ def requests_download_file(url, outfile, callback_func=None, try_resume=True, ch
                 callback_func(count + chunk_offset, chunksize, filesize)
             
 def queue_thread_handler(queue, workClass):
-    worker = workClass()
+    worker = workClass(queue)
     while True:
-        entry = queue.get()
-        worker.process(entry)
+        worker.next()
 
 class BaseWorker(object):
-    pass
-
+    def __init__(self, queue):
+        self.queue = queue
+        self.init()
+    
+    def init(self):
+        pass    
+    
+    def next(self):
+        self.process(self.queue.get())
+    
 class HttpDownload(BaseWorker):
     def process(self, entry):
         def hook(count, blocksize, totalsize):
@@ -69,7 +76,7 @@ class HttpDownload(BaseWorker):
         entry._update(3, verify=True)
  
 class ModOrganizer(BaseWorker):
-    def __init__(self):
+    def init(self):
         self.rpc = mo_rpc.RpcCaller()
 
     def process(self, entry):

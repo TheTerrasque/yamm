@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "YAMM"
-#define MyAppVersion "0.1"
+#define MyAppVersion "0.1.1"
 #define MyAppPublisher "Terrasque"
 #define MyAppURL "https://github.com/TheTerrasque/yamm"
 #define MyAppExeName "yammy ui.exe"
@@ -23,7 +23,7 @@ DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=dist\installer
-OutputBaseFilename=setup_yamm
+OutputBaseFilename=setup_yamm_{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 
