@@ -2,8 +2,12 @@ import os
 from threading import Thread, Lock
 from Queue import Queue
 
+import logging
+
 import mo_rpc
 import requests
+
+L = logging.getLogger("YAMM.worker")
 
 STATUS = {
     0: (" I ", "Initializing"),
@@ -20,6 +24,9 @@ STATUS = {
 }
 
 def requests_download_file(url, outfile, callback_func=None, try_resume=True, chunksize=64*1024):
+    """
+    Download file via Requests, support continuing a partial download
+    """
     headers = {}
     filemode = "wb"
     existing = 0
@@ -41,6 +48,7 @@ def requests_download_file(url, outfile, callback_func=None, try_resume=True, ch
     else:
         if not r.status_code == requests.codes.ok:
             #print "Got error status code", r.status_code
+            L.warning("Downloader got status code %s for url %s", r.status_code, url)
             return
     
     with open(outfile, filemode) as f:
@@ -52,9 +60,15 @@ def requests_download_file(url, outfile, callback_func=None, try_resume=True, ch
 def queue_thread_handler(queue, workClass):
     worker = workClass(queue)
     while True:
-        worker.next()
+        try:
+            worker.next()
+        except Exception:
+            L.exception("Worker %s failed", workClass.name)
 
 class BaseWorker(object):
+    threads = 1
+    name = None
+    
     def __init__(self, queue):
         self.queue = queue
         self.init()
@@ -64,40 +78,55 @@ class BaseWorker(object):
     
     def next(self):
         self.process(self.queue.get())
+
+    @classmethod
+    def get_name(cls):
+        return cls.name or "q-" + cls.__name__
     
-class HttpDownload(BaseWorker):
     def process(self, entry):
-        def hook(count, blocksize, totalsize):
-            dl = count * blocksize
-            percent = int(( float(dl) / totalsize) * 100)
-            entry._progress(percent, totalsize)
+        raise Exception("Process not implemented")
+
+
+class Workers:    
+    class HttpDownload(BaseWorker):
+        threads = 2
+        
+        def process(self, order):
+            def hook(count, blocksize, totalsize):
+                dl = count * blocksize
+                percent = int(( float(dl) / totalsize) * 100)
+                order._progress(percent, totalsize)
+                
+            requests_download_file(order.entry.get_url(), order.file_path(), hook)
+            order._update(3, verify=True)
+
+    class ServiceUpdate(BaseWorker):
+        pass
+     
+    class ModOrganizer(BaseWorker):
+        
+        def init(self):
+            self.rpc = mo_rpc.RpcCaller()
+    
+        def process(self, order):
+            if not self.rpc.ping():
+                return order._update("Merr")
             
-        requests_download_file(entry.mod.get_url(), entry.file_path(), hook)
-        entry._update(3, verify=True)
- 
-class ModOrganizer(BaseWorker):
-    def init(self):
-        self.rpc = mo_rpc.RpcCaller()
+            if self.rpc.get_mod(order.entry.mod.name):
+                return order._update("Mexist")
+            
+            modname = self.rpc.install_mod(order.file_path(), order.entry.mod.name)
+            if modname:
+                return order._update("Mcomplete")
+            else:
+                return order._update("Mfail")
 
-    def process(self, entry):
-        if not self.rpc.ping():
-            return entry._update("Merr")
-        
-        if self.rpc.get_mod(entry.mod.mod.name):
-            return entry._update("Mexist")
-        
-        modname = self.rpc.install_mod(entry.file_path(), entry.mod.mod.name)
-        if modname:
-            return entry._update("Mcomplete")
-        else:
-            return entry._update("Mfail")
-
-class ModWorkorder(object):
-    def __init__(self, mod, task, callback=None):
-        self.mod = mod
+class WorkOrder(object):
+    def __init__(self, workclass, entry, callback=None):
+        self.entry = entry
         self.callback = callback
         self.status = 1
-        self.task = task
+        self.worker = workclass
 
     def init(self, parent):
         self.parent = parent
@@ -116,47 +145,55 @@ class ModWorkorder(object):
         self._update(2)
 
     def file_path(self):
-        return os.path.join(self.parent.folder, self.mod.mod.filename)
+        return os.path.join(self.parent.folder, self.entry.mod.filename)
         
     def _update(self, status, verify=False):
         self.status = status
         
         if verify:
-            if not self.mod.check_file(self.file_path()):
+            if not self.entry.check_file(self.file_path()):
                 self.status = "CHECKSUM_ERR"
         
         if self.callback:
-            with self.parent.UIlock:
+            with self.parent.get_lock("UI"):
                 self.callback(self)
-
-WORKERS = [
-    #(queuename, workerclass, num_threads)
-    ("dlhttp", HttpDownload, 2),
-    ("mo-rpc", ModOrganizer, 1)
-]
 
 class WorkHandler(object):
     def __init__(self, folder):
         self.urls = []
+        
         self.folder = folder
         if not os.path.exists(folder):
             os.mkdir(folder)
         
         self._threads = []
-        self.create_threads()
-        
-    def create_threads(self):
+        self.locks = {}
         self.queue = {}
-        self.UIlock = Lock()
+    
+    def get_lock(self, lockname):
+        if not lockname in self.locks:
+            self.locks[lockname] = Lock()
+        return self.locks[lockname]
+    
+    def get_queue_for(self, workerclass):
+        queuename = workerclass.get_name()
         
-        for queuename, work_class, num_threads in WORKERS:
+        if not queuename in self.queue:
             self.queue[queuename] = Queue()
-            for threadnum in range(num_threads):
-                thread = Thread(target=queue_thread_handler, args = (self.queue[queuename], work_class))
+            
+            for threadnum in range(workerclass.threads):
+                thread = Thread(target=queue_thread_handler, args = (self.queue[queuename], workerclass))
                 thread.daemon = True
                 thread.start()
                 self._threads.append(thread)
+                
+        return self.queue[queuename]
 
+    def add_order(self, *args, **kwargs):
+        entry = WorkOrder(*args, **kwargs)
+        self.add_work(entry)
+    
     def add_work(self, entry):
+        queue = self.get_queue_for(entry.worker)
         entry.init(self)
-        self.queue[entry.task].put(entry)
+        queue.put(entry)

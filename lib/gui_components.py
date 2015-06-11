@@ -5,7 +5,7 @@ import tkFileDialog
 from .utils import get_filesize_display, get_config_path
 import os
 import webbrowser
-from .workers import ModWorkorder, WorkHandler
+from .workers import WorkHandler, Workers
 
 from .system_integration import setup_modorganizer, setup_registry
 
@@ -243,8 +243,7 @@ class ModDlEntry:
         return self.dlvar.get()
 
     def install_in_mo(self):
-        o = ModWorkorder(self.mod, "mo-rpc", self.callback)
-        WORKER.add_work(o)
+        WORKER.add_order(Workers.ModOrganizer, self.mod, self.callback)
         
     def callback(self, entry):
         self.set_status(entry.get_mini_status(), entry.get_status())
@@ -312,14 +311,12 @@ class DownloadModules:
         for x in self.modwidgets:
             if x.is_download_checked():
                 x.set_status("+MO", "In Queue for MO")
-                o = ModWorkorder(x.mod, "mo-rpc", x.callback)
-                WORKER.add_work(o)
+                WORKER.add_order(Workers.ModOrganizer, x.mod, x.callback)
     
     def start_download(self):
         for m in self.modwidgets:
             if m.is_download_checked():
-                o = ModWorkorder(m.mod, "dlhttp", m.callback)
-                WORKER.add_work(o)
+                WORKER.add_order(Workers.HttpDownload, m.mod, m.callback)
 
 class ModuleInfo:
     
