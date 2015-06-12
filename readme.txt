@@ -14,53 +14,56 @@ either dynamically on request or static on updates.
 
 ------------------------
 
-Running via GUI:
-
- 1. Install Python (version 2) from python.org
- 2. Then double click on the "yammy ui.pyw" file.
-    - First start might be a bit slow as it has to
-      set up the database and download metadata
- 3. Double click the mod you want installed
- 4. Click "Download mods"
- 5. Click "Start download"
- 6. All needed files will be downloaded to files/ subdir
-
-Set up Mod Organizer plugin and URL handling:
-
- To set up and install these, you ususally need administrator access.
-
- The easy way to do this is to run the provided "setup.vbs" script,
- which will start the GUI in setup mode and with the correctaccess rights.
-
- You can also start the setup part manually by starting
- "yammy ui.pyw" with "--setup" option.
-
- You will need Mod Organizer v 1.3.5 or higher for the MO plugin to work.
-
-------------------------
-
-CLI Example use:
-
-    # Build index and initialize DB
-    python yamm.py add "http://terra.thelazy.net/yamm/mods.json"
-    python yamm.py update
-    
-    python yamm.py search ui
-    python yamm.py search defeat
-    python yamm.py show SkyUI
-    python yamm.py show Defeat
-    
-    python yamm.py download Defeat
-
------------------------
-
 Actual mod installataion / management not included,
 since goal is to have MO do that.
 
+-----------------------
+
+JSON Service Format:
+
+Root entry consist of two keys:
+
+1. "mods" - Holding a list of mods this service provides
+2. "service" - Holding metadata of the service
+
+"mods" key:
+    Required field:
+     - "name" : This will be the referential name of the mod. Used internally for resolving dependencies.
+    
+    Optional fields:
+     - "version" : The version of the mod. Not actively used at the moment, but there are some plans for it.
+     - "category": What category it's put under. Category "framework" won't show in normal mod listing in the program.
+     - "filehash": sha256 hash for file, base64 encoded with trailing "=" removed.
+     - "homepage": URL to homepage or page for more information about the mod.
+     - "description": Short description of the mod.
+     - "filesize": Size in bytes for mod.
+     - "filename": Name of the mod's file on the server.
+     - "torrent": Name of torrent file for mod.
+     - "author": Author of said mod.
+     - "magnet": Torrent infohash, for use in magnet link. Will only be tried if torrent file is not provided.
+     
+     These optional entries consist of list of strings referencing name field on other mods, and defines relations to other mods
+        - "depends": What other mods this one requires.
+        - "recommends": Other mods recommended to run with this mod, but not required.
+        - "provides": Mod names this mod provides drop-in replacement of.
+        - "conflicts": Mods this one is in direct conflict with.
+
+"service" key:
+    Required field:
+     - "name": Name of the service
+    
+    Optional fields:
+     - "filelocations":
+            List of base urls that are combined with filename for mod. If not given, the final url will be in relation to the json url.
+            If more than one entry in list, one will be chosen at random.
+            
+     - "recommends": List of urls to other services that this service recommends / relies on. User will be asked if s/he want to add these too
+     - "torrents": Base URL to torrent files. Works similar to "filelocations", but is only one entry.
+     
 -----------------------
 
 Troubleshooting:
 
     If something doesn't work:
      - Ensure you have the latest code
-     - Delete data/modinfo.db and re-add the services
+     - Delete %userprofile%/YAMM/data/modinfo.db and re-add the services
