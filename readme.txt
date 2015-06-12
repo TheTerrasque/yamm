@@ -59,6 +59,16 @@ Root entry consist of two keys:
             
      - "recommends": List of urls to other services that this service recommends / relies on. User will be asked if s/he want to add these too
      - "torrents": Base URL to torrent files. Works similar to "filelocations", but is only one entry.
+
+-----------------------
+
+URL scheme:
+
+    YAMM urls start with "yamm:" and contains one or more of the following (separated by | ):
+        "service:<url>" - URL is url to json service file. If user doesn't have that service s/he will be asked if it shall be added
+        "mod:<modname>" - Will open the window for "modname" if it's found in the database.
+        
+    These can be chained, so you can for example add the relevant service before opening the mod.
      
 -----------------------
 
