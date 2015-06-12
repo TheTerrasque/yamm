@@ -3,8 +3,6 @@ from storage import ModEntry, ModDependency, ModService, db, get_mod_by_name
 import logging
 from collections import defaultdict
 
-import datetime
-
 from utils import create_filehash, get_json
 
 L = logging.getLogger("YAMM.moddb")
@@ -176,11 +174,13 @@ class ModDb(object):
     def get_services(self):
         return ModService.select()
     
+    def get_service_updaters(self):
+        return [ServiceUpdater(x) for x in self.get_services()]
+    
     def update_services(self):
-        with db.transaction():
-            for service in self.get_services():
-                updater = ServiceUpdater(service)
-                updater.update()
+        for service in self.get_services():
+            updater = ServiceUpdater(service)
+            updater.update()
     
     def get_module_count(self):
         return ModEntry.select().count()
@@ -229,11 +229,10 @@ class ServiceUpdater(object):
         """Create or update a mod instance in DB"""
         modentry, created = ModEntry.get_or_create(name=mod["name"], service=self.service)
         
-        modentry.version = mod["version"]
         modentry.service = self.service
         
         # Optional entries
-        for field in ["description", "filehash", "filesize", "homepage", "author", "category", "filename", "magnet", "torrent"]:
+        for field in ["version", "description", "filehash", "filesize", "homepage", "author", "category", "filename", "magnet", "torrent"]:
             if mod.get(field):
                 setattr(modentry, field, mod[field])
         
@@ -246,11 +245,13 @@ class ServiceUpdater(object):
     def __init__(self, service):
         self.service = service
 
-    def update(self):
-        data, etag = get_json(self.service.url, self.service.etag)
+    def update(self, data=None, etag=None):
+        if not data:
+            data, etag = get_json(self.service.url, self.service.etag)
         if data:
-            self.update_service_data(data, etag)
-            self.update_mods(data["mods"])
+            with db.transaction():
+                self.update_service_data(data, etag)
+                self.update_mods(data["mods"])
         
     def update_mods(self, modlist):
         self.service.clear_mods()

@@ -2,11 +2,10 @@ import re
 #import logging
 
 import hashlib
-import urllib2
 
+import urllib2
 from StringIO import StringIO
 import gzip
-
 import json
 
 import os.path

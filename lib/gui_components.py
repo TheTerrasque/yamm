@@ -461,11 +461,19 @@ class Search:
         
     # -------------------------------------------------
 
+    def refresh_data(self, event=None):
+        e = ""
+        if event:
+            e = "%s updated: " % event.entry.service.name
+        self.status.set(e + "%s modules in database" % self.mod_db.get_module_count())
+        self.list_modules(self.mod_db.get_modules_not_in_category("framework"))
+
     def update_data(self, fetch=True):
         if fetch:
-            self.mod_db.update_services()
-        self.status.set("%s modules in database" % self.mod_db.get_module_count())
-        self.list_modules(self.mod_db.get_modules_not_in_category("framework"))
+            for updater in self.mod_db.get_service_updaters():
+                WORKER.add_order(Workers.ServiceUpdate, updater, self.refresh_data)
+        self.refresh_data()
+        
 
     def list_modules(self, modulelist):
         self.modmap = modulelist

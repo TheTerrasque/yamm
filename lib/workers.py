@@ -7,6 +7,8 @@ import logging
 import mo_rpc
 import requests
 
+from .utils import get_json
+
 L = logging.getLogger("YAMM.worker")
 
 STATUS = {
@@ -101,7 +103,14 @@ class Workers:
             order._update(3, verify=True)
 
     class ServiceUpdate(BaseWorker):
-        pass
+        threads = 4
+        
+        def process(self, order):
+            entry = order.entry
+            data, etag = get_json(entry.service.url, entry.service.etag)
+            with order.parent.get_lock("DB"):
+                entry.update(data, etag)
+            order._update()
      
     class ModOrganizer(BaseWorker):
         
@@ -147,7 +156,7 @@ class WorkOrder(object):
     def file_path(self):
         return os.path.join(self.parent.folder, self.entry.mod.filename)
         
-    def _update(self, status, verify=False):
+    def _update(self, status=None, verify=False):
         self.status = status
         
         if verify:
