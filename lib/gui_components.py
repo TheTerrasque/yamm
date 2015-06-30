@@ -206,10 +206,16 @@ class ModDlEntry:
             "padx": 5,
             "pady": 3
         }
-        
         self.dlvar = tK.IntVar()
-        self.dlcheck = tK.Checkbutton(frame, var=self.dlvar)
-        self.dlcheck.pack(**pack)
+        
+        if self.mod.mod.homepage and not self.path:
+            hb = tK.Button(frame, text="H", command=self.open_homepage)
+            hb.pack(**pack)
+            CreateToolTip(hb, "Open homepage")
+            self.dlcheck = None
+        else:
+            self.dlcheck = tK.Checkbutton(frame, var=self.dlvar)
+            self.dlcheck.pack(**pack)
         
         self.ministatus = tK.Label(frame, text="-o-", font="Fixedsys 9")
         self.ministatus.pack(**pack)
@@ -237,7 +243,11 @@ class ModDlEntry:
     def set_row_color(self, hexcolor):
         for e in [self.frame, self.dlcheck, self.ministatus,
                   self.name, self.status, self.size, self.useTorrent]:
-            e.config(background=hexcolor)
+            if e:
+                e.config(background=hexcolor)
+
+    def open_homepage(self):
+        webbrowser.open(self.mod.mod.homepage)
 
     def is_download_checked(self):
         return self.dlvar.get()
@@ -249,7 +259,7 @@ class ModDlEntry:
         self.set_status(entry.get_mini_status(), entry.get_status())
     
     def set_data(self):
-        self.dlcheck.select()
+        self.dlvar.set(1)
         
         self.set_status("-*-", "Listed")
         
@@ -259,8 +269,9 @@ class ModDlEntry:
             self.size.config(text=get_filesize_display(self.mod.mod.filesize))
         
         if not self.path:
-            self.dlcheck.deselect()
-            self.dlcheck.config(state=tK.DISABLED)
+            self.dlvar.set(0)
+            if self.dlcheck:
+                self.dlcheck.config(state=tK.DISABLED)
             self.set_status("-v-", "No download info")
             
     def set_status(self, mini, text):
@@ -306,7 +317,7 @@ class DownloadModules:
         
         self.button_mo = tK.Button(frame, text="Send checked mods to Mod Organizer", command=self.send_to_mo)
         self.button_mo.pack(fill=tK.X, anchor=tK.S)
-    
+        
     def send_to_mo(self):
         for x in self.modwidgets:
             if x.is_download_checked():
