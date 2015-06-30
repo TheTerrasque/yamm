@@ -5,15 +5,13 @@ import json
 CPATH = get_config_path()
 
 class Entry(object):
-    def __init__(self, name, default_value=None, description="", values=[]):
+    def __init__(self, name, default_value=None, description="", values=[], valuetype="text"):
         self.name = name
         self.values = values
         self.default_value = default_value
         self.description = description
         self.value = self.default_value
-
-    def get_value(self):
-        return self.value
+        self.valuetype = valuetype
     
     def get_value_display(self):
         if self.values:
@@ -23,7 +21,7 @@ class Entry(object):
         return self.value
         
     def write(self):
-        return self.get_value()
+        return self.value
     
     def read(self, value):
         self.value = value

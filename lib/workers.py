@@ -1,12 +1,13 @@
 import os
 from threading import Thread, Lock
-from Queue import Queue
+from Queue import Queue, Empty
 
 import logging
 
 import mo_rpc
 import requests
 
+from .torrent import qBittorrentRPC
 from .utils import get_json
 
 L = logging.getLogger("YAMM.worker")
@@ -23,6 +24,9 @@ STATUS = {
     "Mcomplete": ("MO!", "Mod installed"),
     "Mfail": ("MO?", "Mod install failed"),
     "Mmiss": ("---", "No mod file to install"),
+    "Tadd": (".T.", "Adding torrent"),
+    "Tfail": ("!T!", "Couldn't add torrent!"),
+    "Tadded": (" T ", "Torrent added"),
 }
 
 def requests_download_file(url, outfile, callback_func=None, try_resume=True, chunksize=64*1024):
@@ -89,7 +93,30 @@ class BaseWorker(object):
         raise Exception("Process not implemented")
 
 
-class Workers:    
+class Workers:
+    class qTorrentDownload(BaseWorker):
+        def init(self):
+            self.rpc = qBittorrentRPC()
+            self.downloads = []
+
+        def next(self):
+            try:
+                self.process(self.queue.get(), 1)
+            except Empty:
+                self.update_entries()
+                
+        def update_entries(self):
+            pass
+            
+        def process(self, order):
+            filename = order.entry.mod.mod.filename
+            torrent = order.entry.mod.get_torrent_link()
+            order._update("Tadd")
+            r = self.rpc.add_torrent(torrent, filename)
+            order.filehash = r
+            self.downloads.append(order)
+            order._update("Tadd")
+            
     class HttpDownload(BaseWorker):
         threads = 2
         
