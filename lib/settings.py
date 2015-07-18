@@ -5,11 +5,13 @@ import json
 CPATH = get_config_path()
 
 class Entry(object):
-    def __init__(self, name, default_value=None, description="", values=[], valuetype="text"):
+    def __init__(self, name, default_value="", description="", values=[], valuetype="text"):
         self.name = name
         self.values = values
+        if values and valuetype=="text":
+            valuetype = "choice"
         self.default_value = default_value
-        self.description = description
+        self.description = description or name
         self.value = self.default_value
         self.valuetype = valuetype
     
@@ -80,20 +82,26 @@ class Setting(Section):
 
 configfile = os.path.join(CPATH, "settings.json")
         
-SETTINGS = Setting(configfile)
-    
-SETTINGS.adds([
-    Section("directory").adds([
-        Entry("download", os.path.join(CPATH, "downloads"), "Directory to store downloaded files"),
-    ]),
-    Section("torrent").adds([
-        Entry("client", values = (
-                (None, "No client"),
-                ("transmission", "Transmission-QT"),
-                ("qbittorent", "qBitTorrent")
+def create_settings(conffile=configfile):        
+    settings = Setting(configfile)
+        
+    settings.adds([
+        Section("directory").adds([
+            Entry("download", os.path.join(CPATH, "downloads"), "Download directory", valuetype="folder"),
+            Entry("modir", "", "Mod Organizer folder", valuetype="folder"),
+        ]),
+        Section("torrent").adds([
+            Entry("client", "none", values = (
+                    ("none", "No client", "HTTP Download"),
+                    ("transmission", "Transmission-QT [BETA]", "Needs Remote Access enabled at port 9091 and authentication turned off"),
+                    ("qbittorent", "qBittorrent [ALPHA]", "Needs Web UI enabled at port 8080 with 'Bypass authentication for localhost' enabled")
+                ),
+                description="Torrent client"
             )
-        )
+        ])
     ])
-])
+    
+    settings.load()
+    return settings
 
-SETTINGS.load()
+SETTINGS = create_settings()

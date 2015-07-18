@@ -7,7 +7,9 @@ import logging
 import mo_rpc
 import requests
 
-from .torrent import qBittorrentRPC
+from requests.exceptions import ConnectionError
+
+from .torrent import qBittorrentRPC, TransmissionRPC
 from .utils import get_json
 
 L = logging.getLogger("YAMM.worker")
@@ -94,6 +96,53 @@ class BaseWorker(object):
 
 
 class Workers:
+    class TransmissionDownload(BaseWorker):
+        def init(self):
+            self.rpc = TransmissionRPC()
+            self.downloads = []
+
+        def next(self):
+            try:
+                r = self.queue.get(True, 1)
+                self.process(r)
+            except Empty:
+                self.update_entries()
+                
+        def update_entries(self):
+            tmap = {}
+            r = self.rpc.get_torrents()
+            for t in r["arguments"]["torrents"]:
+                tmap[t["id"]] = t
+            
+            to_remove = []
+            
+            for order in self.downloads:
+                if order.torrentid in tmap:
+                    data = tmap[order.torrentid]
+                    done = int(data["percentDone"]*100)
+                    order._progress(done, data["totalSize"])
+                    if done > 99:
+                        order._update(3, verify=True)
+                        to_remove.append(order)
+            for x in to_remove:
+                self.downloads.remove(x)
+            
+                        
+            
+        def process(self, order):
+            torrent = order.entry.get_torrent_link()
+            order._update("Tadd")
+            try:
+                r = self.rpc.add_torrent(order.get_download_folder(), torrent)
+            except ConnectionError:
+                order.torrentid = None
+                order._update("Tfail")
+                return
+            
+            order.torrentid = r
+            self.downloads.append(order)
+            order._update("Tadd")
+    
     class qTorrentDownload(BaseWorker):
         def init(self):
             self.rpc = qBittorrentRPC()
@@ -101,18 +150,26 @@ class Workers:
 
         def next(self):
             try:
-                self.process(self.queue.get(), 1)
+                r = self.queue.get(True, 1)
+                self.process(r)
             except Empty:
                 self.update_entries()
                 
         def update_entries(self):
-            pass
+            tmap = {}
+            for t in self.rpc.get_torrents():
+                tmap[t["hash"]] = t
+            
+            for order in self.downloads:
+                if order.filehash in tmap:
+                    data = tmap[order.filehash]
+                    order._progress(int(data["progress"]*100), data["size"])
             
         def process(self, order):
-            filename = order.entry.mod.mod.filename
-            torrent = order.entry.mod.get_torrent_link()
+            filename = order.entry.mod.filename
+            torrent = order.entry.get_torrent_link()
             order._update("Tadd")
-            r = self.rpc.add_torrent(torrent, filename)
+            r = self.rpc.add_torrent_path(torrent, filename, order.get_download_folder())
             order.filehash = r
             self.downloads.append(order)
             order._update("Tadd")
@@ -180,8 +237,14 @@ class WorkOrder(object):
         self.totalsize = totalsize
         self._update(2)
 
+    def get_download_folder(self):
+        r = self.parent.settings.directory.download.value
+        if not os.path.exists(r):
+            os.mkdir(r)
+        return r
+
     def file_path(self):
-        return os.path.join(self.parent.folder, self.entry.mod.filename)
+        return os.path.join(self.get_download_folder(), self.entry.mod.filename)
         
     def _update(self, status=None, verify=False):
         self.status = status
@@ -195,13 +258,11 @@ class WorkOrder(object):
                 self.callback(self)
 
 class WorkHandler(object):
-    def __init__(self, folder):
+    def __init__(self, settings):
         self.urls = []
         
-        self.folder = folder
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        
+        self.settings = settings
+                
         self._threads = []
         self.locks = {}
         self.queue = {}

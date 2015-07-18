@@ -48,9 +48,8 @@ DLDIR = os.path.join(get_config_path(), "files")
 
 L = logging.getLogger("YAMM.YammiUI")
 
-CALLBACK["downloadmod"] = lambda modlist: open_window(DownloadModules, [modlist, DLDIR])
+#CALLBACK["downloadmod"] = lambda modlist: open_window(DownloadModules, [modlist, DLDIR])
 
-L.debug("Download directory: %s", DLDIR)
 
 def handle_url_schema(url):
     result = None

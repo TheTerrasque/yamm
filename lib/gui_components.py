@@ -6,7 +6,7 @@ from .utils import get_filesize_display, get_config_path
 import os
 import webbrowser
 from .workers import WorkHandler, Workers
-
+from .settings import SETTINGS, create_settings
 from .system_integration import setup_modorganizer, setup_registry
 
 import logging
@@ -35,10 +35,9 @@ WORKER = None
 
 def initialize_uimodules():
     global WORKER
-    path = os.path.join(get_config_path(), "files")
-    WORKER = WorkHandler(path)
+    WORKER = WorkHandler(SETTINGS)
 
-class BaseWindow:
+class BaseWindow(object):
     def __init__(self, master, *args, **kwargs):
         self.master = master
         self.create_widgets(master)
@@ -48,6 +47,14 @@ class BaseWindow:
     def init(self, *args, **kwargs):
         pass
     
+    def simple_window(self, title="YAMM", height=500, width=300):
+        self.master.title(title)
+        self.master.minsize(width=width,  height=height)
+        
+        frame = tK.Frame(self.master)
+        frame.pack(fill=tK.BOTH, expand=1)
+        
+        return frame
 
 class CreateToolTip(object):
     '''
@@ -83,11 +90,7 @@ class CreateToolTip(object):
 class Setup(BaseWindow):
         
     def create_widgets(self, master):
-        master.title("YAMM Setup")
-        master.minsize(width=350, height=100)
-        
-        frame = tK.Frame(master)
-        frame.pack(fill=tK.BOTH, expand=1)
+        frame = self.simple_window("YAMM setup")
         
         tK.Label(frame, text="Setup of YAMM system integration").pack(fill=tK.X)
         
@@ -118,28 +121,106 @@ class Setup(BaseWindow):
             pass
         
 class Settings(BaseWindow):
+    def init(self):
+        self.create_settings()
+        
+    def create_settings(self):
+        pack = {
+             "side": tK.LEFT,
+             "padx": 5,
+             "pady": 3
+         }
+        
+        class SettingsEntry(object):
+            def __init__(self, parent, setting):
+                self.setting = setting
+                self.parent = parent
+                self.create_ui()
+                
+            def create_ui(self):
+                frame = tK.Frame(self.parent)
+                frame.pack(expand=1, fill=tK.X)
+                tK.Label(frame, text=self.setting.description).pack(**pack)
+                self.make_field(frame)
+                
+            def make_field(self, frame):          
+                self.field = tK.Entry(frame)
+                self.field.pack(expand=1, fill=tK.X, **pack)
+                self.field.insert(0, self.setting.value)
+                
+            def get_value(self):
+                return self.field.get()
+            
+            def store_value(self):
+                self.setting.value = self.get_value()
+        
+        class SettingsEntryRadio(SettingsEntry):
+            def make_field(self, frame):
+                self.field = tK.StringVar()
+                
+                self.field.set(self.setting.value)
+                
+                for val, text, description in self.setting.values:
+                    b = tK.Radiobutton(frame, text=text,
+                        variable=self.field, value=val)
+                    b.pack(**pack)
+                    CreateToolTip(b, description)
+        
+        class SettingsEntryDirectory(SettingsEntry):
+            
+            def make_field(self, frame):
+                super(SettingsEntryDirectory, self).make_field(frame)
+                button = tK.Button(frame, text="Browse", command=self.get_folder)
+                button.pack(**pack)
+                
+            def get_folder(self):
+                folder = tkFileDialog.askdirectory(parent=self.parent, mustexist=True, title="Choose directory", initialdir=self.get_value())
+                if folder:
+                    self.field.delete(0, tK.END)
+                    self.field.insert(0, folder)
+        
+        CTypes = {
+            "text": SettingsEntry,
+            "folder": SettingsEntryDirectory,
+            "choice": SettingsEntryRadio,
+        }
+        
+        self.settings = create_settings()
+        self.setting_entries = []
+        
+        settings = tK.Frame(self.baseframe)
+        settings.pack(expand=1, fill=tK.X)
+        
+        for category in self.settings.entries.values():
+            group = tK.LabelFrame(settings, text=category.name.title(), padx=5, pady=5)
+            group.pack(expand=1, fill=tK.X, padx=5, pady=3, side=tK.TOP)
+            for setting in category.entries.values():
+                e = CTypes[setting.valuetype] (group, setting)
+                self.setting_entries.append(e)
+
         
     def create_widgets(self, master):
-        master.title("YAMM Settings")
-        master.minsize(width=300,  height=500)
-        
-        frame = tK.Frame(master)
-        frame.pack(fill=tK.BOTH, expand=1)
-    
-        title = tK.Label(frame, text="Nothing here yet")
-        title.pack(fill=tK.X)
+        self.baseframe = self.simple_window("YAMM Settings")
 
+        # (bla, input, browse)
+        # tkFileDialog.askdirectory(parent=self.master, mustexist=True, title="Choose Mod Organizer directory")
+        
+        tK.Button(self.baseframe, text="Save settings", command=self.save).pack(side=tK.BOTTOM, expand=1, fill=tK.X)
+        
+    def save(self):
+        for entry in self.setting_entries:
+            entry.store_value()
+        self.settings.save()
+        SETTINGS.load()
+        
+        
 class ServiceList(BaseWindow):
     def init(self, mdb):
         self.mdb = mdb
         self.show_services()
 
     def create_widgets(self, master):
-        master.title("YAMM Services")
-        master.minsize(width=300,  height=500)
-
-        frame = tK.Frame(master)
-        frame.pack(fill=tK.BOTH, expand=1)
+        frame = self.simple_window("YAMM Services")
         
         title = tK.Label(frame, text="Active services")
         title.pack(fill=tK.X)
@@ -253,8 +334,20 @@ class ModDlEntry:
         return self.dlvar.get()
 
     def install_in_mo(self):
-        WORKER.add_order(Workers.ModOrganizer, self.mod, self.callback)
+        if self.is_download_checked():
+            self.set_status("+MO", "In Queue for MO")
+            WORKER.add_order(Workers.ModOrganizer, self.mod, self.callback)
         
+    def download(self):
+        if self.is_download_checked():
+            dlclient = Workers.HttpDownload
+            if self.torrvar.get():
+                if SETTINGS.torrent.client.value == "qbittorent":
+                    dlclient = Workers.qTorrentDownload
+                if SETTINGS.torrent.client.value == "transmission":
+                    dlclient = Workers.TransmissionDownload
+            WORKER.add_order(dlclient, self.mod, self.callback)
+    
     def callback(self, entry):
         self.set_status(entry.get_mini_status(), entry.get_status())
     
@@ -263,7 +356,10 @@ class ModDlEntry:
         
         self.set_status("-*-", "Listed")
         
-        self.useTorrent.config(state=tK.DISABLED) # tK.NORMAL
+        if self.mod.get_torrent_link() and SETTINGS.torrent.client.value != "none":
+            self.torrvar.set(True)
+        else:
+            self.useTorrent.config(state=tK.DISABLED) # tK.NORMAL
         
         if self.mod.mod.filesize:
             self.size.config(text=get_filesize_display(self.mod.mod.filesize))
@@ -283,12 +379,15 @@ class ModDlEntry:
     
     def show_mod(self, event):
         CALLBACK["showmod"](self.mod)
-
     
 class DownloadModules:
    
-    def __init__(self, master, modlist, downloaddir="files/"):
-        self.downloaddir = downloaddir
+    def __init__(self, master, modlist, downloaddir = None):
+        self.downloaddir = SETTINGS.directory.download.value
+        
+        if downloaddir:
+            self.downloaddir = downloaddir
+        
         self.mods = modlist
         self.setup_widgets(master)
         self.master = master
@@ -320,14 +419,11 @@ class DownloadModules:
         
     def send_to_mo(self):
         for x in self.modwidgets:
-            if x.is_download_checked():
-                x.set_status("+MO", "In Queue for MO")
-                WORKER.add_order(Workers.ModOrganizer, x.mod, x.callback)
+            x.install_in_mo()
     
     def start_download(self):
         for m in self.modwidgets:
-            if m.is_download_checked():
-                WORKER.add_order(Workers.HttpDownload, m.mod, m.callback)
+            m.download()
 
 class ModuleInfo:
     
