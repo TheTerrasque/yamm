@@ -238,7 +238,7 @@ class WorkOrder(object):
         self._update(2)
 
     def get_download_folder(self):
-        r = self.parent.settings.directory.download.value
+        r = self.parent.SETTINGS["directory.download"]
         if not os.path.exists(r):
             os.mkdir(r)
         return r
@@ -261,7 +261,7 @@ class WorkHandler(object):
     def __init__(self, settings):
         self.urls = []
         
-        self.settings = settings
+        self.SETTINGS = settings
                 
         self._threads = []
         self.locks = {}

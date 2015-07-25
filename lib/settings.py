@@ -33,8 +33,9 @@ class Entry(object):
         
 class Section(object):
     
-    def __init__(self, name, description=""):
+    def __init__(self, name, description="", title=None):
         self.name = name
+        self.title = title or name.capitalize()
         self.description = description
         self.entries = {}
     
@@ -80,17 +81,22 @@ class Setting(Section):
                 v = self.write()
                 json.dump(v, f, indent=4)
 
+    def __getitem__(self, key):
+        path = self
+        for p in key.split("."):
+            path = path.entries[p]
+        return path.value
+
 configfile = os.path.join(CPATH, "settings.json")
         
 def create_settings(conffile=configfile):        
     settings = Setting(configfile)
         
     settings.adds([
-        Section("directory").adds([
+        Section("directory", title="Directory setup").adds([
             Entry("download", os.path.join(CPATH, "downloads"), "Download directory", valuetype="folder"),
-            Entry("modir", "", "Mod Organizer folder", valuetype="folder"),
         ]),
-        Section("torrent").adds([
+        Section("torrent", title="BitTorrent").adds([
             Entry("client", "none", values = (
                     ("none", "No client", "HTTP Download"),
                     ("transmission", "Transmission-QT [BETA]", "Needs Remote Access enabled at port 9091 and authentication turned off"),
@@ -98,6 +104,9 @@ def create_settings(conffile=configfile):
                 ),
                 description="Torrent client"
             )
+        ]),
+        Section("mo", title="Mod Organizer").adds([
+            Entry("modir", "", "Mod Organizer folder", valuetype="folder"),
         ])
     ])
     

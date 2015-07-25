@@ -192,7 +192,7 @@ class Settings(BaseWindow):
         settings.pack(expand=1, fill=tK.X)
         
         for category in self.settings.entries.values():
-            group = tK.LabelFrame(settings, text=category.name.title(), padx=5, pady=5)
+            group = tK.LabelFrame(settings, text=category.title, padx=5, pady=5)
             group.pack(expand=1, fill=tK.X, padx=5, pady=3, side=tK.TOP)
             for setting in category.entries.values():
                 e = CTypes[setting.valuetype] (group, setting)
@@ -342,9 +342,9 @@ class ModDlEntry:
         if self.is_download_checked():
             dlclient = Workers.HttpDownload
             if self.torrvar.get():
-                if SETTINGS.torrent.client.value == "qbittorent":
+                if SETTINGS["torrent.client"] == "qbittorent":
                     dlclient = Workers.qTorrentDownload
-                if SETTINGS.torrent.client.value == "transmission":
+                if SETTINGS["torrent.client"] == "transmission":
                     dlclient = Workers.TransmissionDownload
             WORKER.add_order(dlclient, self.mod, self.callback)
     
@@ -356,7 +356,7 @@ class ModDlEntry:
         
         self.set_status("-*-", "Listed")
         
-        if self.mod.get_torrent_link() and SETTINGS.torrent.client.value != "none":
+        if self.mod.get_torrent_link() and SETTINGS["torrent.client"] != "none":
             self.torrvar.set(True)
         else:
             self.useTorrent.config(state=tK.DISABLED) # tK.NORMAL
@@ -383,7 +383,7 @@ class ModDlEntry:
 class DownloadModules:
    
     def __init__(self, master, modlist, downloaddir = None):
-        self.downloaddir = SETTINGS.directory.download.value
+        self.downloaddir = SETTINGS["directory.download"]
         
         if downloaddir:
             self.downloaddir = downloaddir
