@@ -35,11 +35,17 @@ def setup_registry():
 
 def setup_modorganizer(path = None):
     exe = "ModOrganizer.exe"
-    script = "plugin_MO.py"
+    script = "yamm_plugin_mo.py"
     src = os.path.join(get_exec_path(), "utils", script)
     
     def install(path):
         target = os.path.join(path, "plugins", script)
+        
+        # Clean up old script if already there
+        old_scriptname = os.path.join(path, "plugins", "plugin_mo.py")
+        if os.path.exists(old_scriptname):
+            os.unlink(old_scriptname)
+            
         shutil.copyfile(src, target)
     
     paths = [

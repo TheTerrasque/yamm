@@ -107,6 +107,8 @@ def create_settings(conffile=configfile):
         ]),
         Section("mo", title="Mod Organizer").adds([
             Entry("modir", "", "Mod Organizer folder", valuetype="folder"),
+            Entry("modtag", False, "Tag YAMM mods in Mod Organizer", valuetype="checkbox", description="This will add [YAMM] in front of each mod installed with YAMM"),
+            Entry("modenable", True, "Enable mods after installing", valuetype="checkbox", description="This will automatically enable a mod after installing it"),
         ])
     ])
     

@@ -78,6 +78,8 @@ class RpcCaller(object):
             print " ", d["error"]
             print " ", d["details"]
             print " ", d["data"]
+            for x in d["trace"]:
+                print "  ", x
             return None
         return d["result"]
         
@@ -93,7 +95,6 @@ if __name__ == "__main__":
     
     rpc = RpcCaller()
     if rpc.ping():
-        print rpc.get_mods()
         print rpc.version()
         print rpc.get_mo_version()
         print rpc.get_debug()

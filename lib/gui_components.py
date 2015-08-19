@@ -154,6 +154,14 @@ class Settings(BaseWindow):
             def store_value(self):
                 self.setting.value = self.get_value()
         
+        class SettingsEntryCheckbox(SettingsEntry):
+            def make_field(self, frame):
+                self.field = tK.IntVar()
+                widget= tK.Checkbutton(frame, text = "Enabled", variable=self.field)
+                widget.pack(expand=1, fill=tK.X, **pack)
+                self.field.set(self.setting.value)
+        
+        
         class SettingsEntryRadio(SettingsEntry):
             def make_field(self, frame):
                 self.field = tK.StringVar()
@@ -183,6 +191,7 @@ class Settings(BaseWindow):
             "text": SettingsEntry,
             "folder": SettingsEntryDirectory,
             "choice": SettingsEntryRadio,
+            "checkbox": SettingsEntryCheckbox,
         }
         
         self.settings = create_settings()

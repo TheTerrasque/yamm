@@ -202,14 +202,23 @@ class Workers:
             self.rpc = mo_rpc.RpcCaller()
     
         def process(self, order):
+            
+            mod_name = order.entry.mod.name
+            if order.parent.SETTINGS["mo.modtag"]:
+                mod_name = "[YAMM] %s" % mod_name
+            
             if not self.rpc.ping():
                 return order._update("Merr")
             
-            if self.rpc.get_mod(order.entry.mod.name):
+            if self.rpc.get_mod(mod_name):
+                if order.parent.SETTINGS["mo.modenable"]:
+                    self.rpc.set_active(mod_name)
                 return order._update("Mexist")
             
             modname = self.rpc.install_mod(order.file_path(), order.entry.mod.name)
             if modname:
+                if order.parent.SETTINGS["mo.modenable"]:
+                    self.rpc.set_active(mod_name)
                 return order._update("Mcomplete")
             else:
                 return order._update("Mfail")
