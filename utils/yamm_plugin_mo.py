@@ -27,6 +27,8 @@ import json
 import mmap
 import tempfile
 
+import traceback
+
 L = logging.getLogger("YAMM.YammMOshim")
 
 MMSIZE=16384
@@ -72,11 +74,13 @@ class RpcFunctionMMAP(object):
             result = getattr(self, funcname)(*args, **kwargs)
             jr = json.dumps({"result": result})
         except Exception as e:
+            t, v, tb = sys.exc_info()
             jr = json.dumps({
                 "result": "ERROR",
                 "error": "An error happened",
                 "details": unicode(e),
                 "data": data,
+                "trace": traceback.format_tb(tb),
             })
         return jr
         
@@ -88,6 +92,9 @@ class RpcFunctionMMAP(object):
     def __del__(self):
         self._mmap.close()
         os.unlink(self._filename)
+
+def fix_string(string):
+    return unicode(string).encode("utf8")
 
 class RpcFunction(RpcFunctionMMAP):
     
@@ -109,25 +116,28 @@ class RpcFunction(RpcFunctionMMAP):
     def get_active_profile(self):
         return self._organizer.profileName()
     
-    def install_mod(self, path, name=None, version=None):
+    def install_mod(self, path, name=None, version=None, category=None):
         # Modinstance : http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodinterface.h
         if name:
-            modinstance = self._organizer.installMod(str(path), str(name))
+            modinstance = self._organizer.installMod(fix_string(path), fix_string(name))
         else:
-            modinstance = self._organizer.installMod(str(path))
+            modinstance = self._organizer.installMod(fix_string(path))
         if modinstance:
+            if category:
+                modinstance.addCategory(fix_string(category))
             return unicode(modinstance.name())
 
     def set_active(self, modname, state=True):
         # http://sourceforge.net/p/modorganizer/code/ci/default/tree/source/uibase/imodlist.h
-        self._organizer.modList().setActive(str(modname), state)
+        self._organizer.modList().setActive(fix_string(modname), state)
     
     def get_mod(self, modname):
-        mod = self._organizer.getMod(str(modname))
+        mn = fix_string(modname)
+        mod = self._organizer.getMod(mn)
         if mod:
-            modstate = self._organizer.modList().state(str(modname))
+            modstate = self._organizer.modList().state(mn)
             moddata = {
-                "name": modname.encode("utf8"),
+                "name": modname,
                 "state": modstate,
                 "active": bool(modstate & 0x2),
                 "valid": bool(modstate & 0x20),
@@ -146,7 +156,6 @@ class RpcFunction(RpcFunctionMMAP):
             l.append(self.get_mod(modname))
         return l
         
-
 RPC=None
         
 class IniEdit(mobase.IPluginTool):
