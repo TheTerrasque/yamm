@@ -140,7 +140,10 @@ class Settings(BaseWindow):
             def create_ui(self):
                 frame = tK.Frame(self.parent)
                 frame.pack(expand=1, fill=tK.X)
-                tK.Label(frame, text=self.setting.description).pack(**pack)
+                label = tK.Label(frame, text=self.setting.description)
+                label.pack(**pack)
+                if self.setting.helptext:
+                    CreateToolTip(label, self.setting.helptext)
                 self.make_field(frame)
                 
             def make_field(self, frame):          
@@ -539,11 +542,11 @@ class Search:
         self.button_search = tK.Button(frame, text="Search", command=self.do_search)
         self.button_search.pack(side=tK.LEFT)
         
-        self.button_search = tK.Button(frame, text="Services", command=self.show_services)
-        self.button_search.pack(side=tK.LEFT)
+        self.button_settings = tK.Button(frame, text="Settings", command=self.show_settings)
+        self.button_settings.pack(side=tK.RIGHT)
         
-        self.button_search = tK.Button(frame, text="Settings", command=self.show_settings)
-        self.button_search.pack(side=tK.LEFT)
+        self.button_service = tK.Button(frame, text="Services", command=self.show_services)
+        self.button_service.pack(side=tK.RIGHT)
         
         frame2 = tK.Frame(master)
         frame2.pack(fill=tK.BOTH, expand=1)

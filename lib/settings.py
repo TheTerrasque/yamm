@@ -5,15 +5,16 @@ import json
 CPATH = get_config_path()
 
 class Entry(object):
-    def __init__(self, name, default_value="", description="", values=[], valuetype="text"):
+    def __init__(self, name, default_value="", title="", values=[], valuetype="text", helptext=""):
         self.name = name
         self.values = values
         if values and valuetype=="text":
             valuetype = "choice"
         self.default_value = default_value
-        self.description = description or name
+        self.description = title or name
         self.value = self.default_value
         self.valuetype = valuetype
+        self.helptext = helptext
     
     def get_value_display(self):
         if self.values:
@@ -100,15 +101,15 @@ def create_settings(conffile=configfile):
             Entry("client", "none", values = (
                     ("none", "No client", "HTTP Download"),
                     ("transmission", "Transmission-QT [BETA]", "Needs Remote Access enabled at port 9091 and authentication turned off"),
-                    ("qbittorent", "qBittorrent [ALPHA]", "Needs Web UI enabled at port 8080 with 'Bypass authentication for localhost' enabled")
+                    #("qbittorent", "qBittorrent [ALPHA]", "Needs Web UI enabled at port 8080 with 'Bypass authentication for localhost' enabled")
                 ),
-                description="Torrent client"
+                title="Torrent client"
             )
         ]),
         Section("mo", title="Mod Organizer").adds([
             Entry("modir", "", "Mod Organizer folder", valuetype="folder"),
-            Entry("modtag", False, "Tag YAMM mods in Mod Organizer", valuetype="checkbox", description="This will add [YAMM] in front of each mod installed with YAMM"),
-            Entry("modenable", True, "Enable mods after installing", valuetype="checkbox", description="This will automatically enable a mod after installing it"),
+            Entry("modtag", False, "Tag YAMM mods in Mod Organizer", valuetype="checkbox", helptext="This will add [YAMM] in front of each mod installed with YAMM"),
+            Entry("modenable", True, "Enable mods after installing", valuetype="checkbox", helptext="This will automatically enable a mod after installing it"),
         ])
     ])
     
