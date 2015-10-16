@@ -16,7 +16,7 @@ def get_modentry(mod_id, db_instance = None):
 class ModDependencies(object):
     def __init__(self, mod):
         self.mod = mod
-        self.scan_mod()
+        self.dependencies = self.scan_mod()
 
     def get_mods_providing(self, tag):
         return [get_modentry(x.mod.id, x.mod) for x in ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == tag)]
@@ -70,7 +70,7 @@ class ModDependencies(object):
                         d = provider.get_dependencies(False)
                         for key in d.dependencies:
                             depmap[key].update(d.dependencies[key])
-        self.dependencies = depmap
+        return depmap
 
     def get_required_mods(self):
         """

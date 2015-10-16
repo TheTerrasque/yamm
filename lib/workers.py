@@ -219,7 +219,7 @@ class Workers:
                     self.rpc.set_active(mod_name)
                 return order._update("Mexist")
             
-            modname = self.rpc.install_mod(order.file_path(), mod_name, category="YAMM")
+            modname = self.rpc.install_mod(order.file_path(), mod_name, category="YAMM Installed")
             
             if modname:
                 if order.parent.SETTINGS["mo.modenable"]:

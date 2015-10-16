@@ -20,7 +20,7 @@ exe = EXE(pyz,
           console=False )
 coll = COLLECT(exe,
                a.binaries + [
-                ("utils/plugin_MO.py","utils/plugin_MO.py", "DATA")
+                ("utils/yamm_plugin_mo.py","utils/yamm_plugin_mo.py", "DATA")
                 ],
                a.zipfiles,
                a.datas,

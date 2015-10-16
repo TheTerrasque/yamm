@@ -9,6 +9,8 @@ from .workers import WorkHandler, Workers
 from .settings import SETTINGS, create_settings
 from .system_integration import setup_modorganizer, setup_registry
 
+from . import torrent
+
 import logging
 L = logging.getLogger("YAMM.YammiUI.TK")
 
@@ -16,7 +18,6 @@ try:
     import _winreg as winreg
 except ImportError:
     winreg = None
-
 
 def open_window(module, data):
     top = tK.Toplevel()
@@ -41,7 +42,7 @@ class BaseWindow(object):
     def __init__(self, master, *args, **kwargs):
         self.master = master
         self.create_widgets(master)
-        master.focus()
+        #master.focus()
         self.init(*args, **kwargs)
 
     def init(self, *args, **kwargs):
@@ -118,7 +119,8 @@ class Setup(BaseWindow):
             if r:
                 tkMessageBox.showinfo("Installed", "Mod Organizer plugin for YAMM was installed")
         except:
-            pass
+            L.exception("Could not install MO plugin")
+            tkMessageBox.showinfo("Install failed", "There was a problem installing the Mod Organizer plugin.\n\nCheck the 'yamm_ui.log' file for details")
         
 class Settings(BaseWindow):
     def init(self):
@@ -434,8 +436,16 @@ class DownloadModules:
             x.install_in_mo()
     
     def start_download(self):
-        if SETTINGS["torrent.client"] != "none":
-            tkMessageBox.showinfo("Torrent client", "A torrent client is configured for downloading of files. Check if it's started before continuing :)")
+        client = SETTINGS["torrent.client"]
+        if client != "none":
+            if client == "transmission":
+                rpc = torrent.TransmissionRPC()
+                try:
+                    rpc.version()
+                except:
+                    tkMessageBox.showinfo("Torrent client", "Can't connect to Transmission. Not started perhaps?")
+            else:    
+                tkMessageBox.showinfo("Torrent client", "A torrent client is configured for downloading of files. Check if it's started before continuing :)")
         for m in self.modwidgets:
             m.download()
 

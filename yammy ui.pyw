@@ -1,5 +1,6 @@
 import Tkinter as tK
 ROOT = tK.Tk()
+
 class Loader:
     def __init__(self, root):
         self.root = root
@@ -31,7 +32,7 @@ LOADER = Loader(ROOT)
 import logging
 from lib.utils import get_config_path, os
 
-logfile = os.path.join(get_config_path(), "ui.log")
+logfile = os.path.join(get_config_path(), "yamm_ui.log")
 
 logging.basicConfig(filename=logfile, filemode="w")
 
@@ -78,7 +79,6 @@ def handle_url_schema(url):
     return result
 
 def main(mod=None):
-    LOADER.exit()
     initialize_uimodules()
     
     app = Search(ROOT, mdb)
@@ -106,9 +106,9 @@ def cmd_args():
 if __name__ == "__main__":
     args = cmd_args()
     mod = None
-
+    LOADER.exit()
+    
     if args.setup:
-        LOADER.exit()
         app = Setup(ROOT)
         ROOT.mainloop()
     else:
