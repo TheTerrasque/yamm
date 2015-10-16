@@ -4,6 +4,8 @@ from Queue import Queue, Empty
 
 import logging
 
+import time
+
 import mo_rpc
 import requests
 
@@ -127,8 +129,6 @@ class Workers:
             for x in to_remove:
                 self.downloads.remove(x)
             
-                        
-            
         def process(self, order):
             torrent = order.entry.get_torrent_link()
             order._update("Tadd")
@@ -204,8 +204,12 @@ class Workers:
         def process(self, order):
             
             mod_name = order.entry.mod.name
+            
             if order.parent.SETTINGS["mo.modtag"]:
                 mod_name = "[YAMM] %s" % mod_name
+            
+            if order.parent.SETTINGS["mo.modtagversion"]:
+                mod_name = "%s v%s" % (mod_name, order.entry.mod.version)
             
             if not self.rpc.ping():
                 return order._update("Merr")
@@ -215,9 +219,11 @@ class Workers:
                     self.rpc.set_active(mod_name)
                 return order._update("Mexist")
             
-            modname = self.rpc.install_mod(order.file_path(), order.entry.mod.name, category="YAMM")
+            modname = self.rpc.install_mod(order.file_path(), mod_name, category="YAMM")
+            
             if modname:
                 if order.parent.SETTINGS["mo.modenable"]:
+                    time.sleep(0.5) # To let MO do it's thing before enabling the mod
                     self.rpc.set_active(mod_name)
                 return order._update("Mcomplete")
             else:

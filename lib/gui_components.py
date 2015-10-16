@@ -434,6 +434,8 @@ class DownloadModules:
             x.install_in_mo()
     
     def start_download(self):
+        if SETTINGS["torrent.client"] != "none":
+            tkMessageBox.showinfo("Torrent client", "A torrent client is configured for downloading of files. Check if it's started before continuing :)")
         for m in self.modwidgets:
             m.download()
 
