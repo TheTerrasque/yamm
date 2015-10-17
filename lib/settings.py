@@ -29,6 +29,9 @@ class Entry(object):
     def read(self, value):
         self.value = value
 
+    def reset(self):
+        self.value = self.default_value
+
     def should_save(self):
         return self.default_value != self.value
         
@@ -48,6 +51,10 @@ class Section(object):
         for x in entries:
             self.add(x)
         return self
+    
+    def reset(self):
+        for key, value in self.entries.items():
+            value.reset()
     
     def write(self):
         r = {}
@@ -72,6 +79,7 @@ class Setting(Section):
         self.entries = {}
     
     def load(self):
+        self.reset()
         if os.path.exists(self.configfile):
             with open(self.configfile) as f:
                 v = json.load(f)

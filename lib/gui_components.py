@@ -2,7 +2,7 @@ import Tkinter as tK
 import tkMessageBox
 import tkSimpleDialog
 import tkFileDialog
-from .utils import get_filesize_display, get_config_path
+from .utils import get_filesize_display
 import os
 import webbrowser
 from .workers import WorkHandler, Workers
@@ -54,7 +54,7 @@ class BaseWindow(object):
         
         frame = tK.Frame(self.master)
         frame.pack(fill=tK.BOTH, expand=1)
-        
+        frame.focus()
         return frame
 
 class CreateToolTip(object):
@@ -226,6 +226,7 @@ class Settings(BaseWindow):
             entry.store_value()
         self.settings.save()
         SETTINGS.load()
+        self.master.destroy()
         
         
 class ServiceList(BaseWindow):

@@ -31,26 +31,34 @@ LOADER = Loader(ROOT)
 
 import logging
 from lib.utils import get_config_path, os
-
-logfile = os.path.join(get_config_path(), "yamm_ui.log")
-
-logging.basicConfig(filename=logfile, filemode="w")
-
-from lib.gui_components import initialize_uimodules, Search, open_window, DownloadModules, CALLBACK, tkMessageBox, Setup
-
-from lib import moddb
 import os.path
+
+def setup_logging(debug=False):    
+    logfile = os.path.join(get_config_path(), "yamm_ui.log")
+    parameters = {
+        "filename": logfile,
+        "filemode": "w",
+        "format": "%(asctime)s|%(levelname)s|%(name)s: %(message)s",
+        "level": logging.INFO,
+    }
+    if debug:
+        parameters["level"] = logging.DEBUG
+    logging.basicConfig(**parameters)
+    
+
+setup_logging()
+
+L = logging.getLogger("YAMM.YammyUI")
+L.info("YAMMy UI starting..")
+
+from lib.gui_components import initialize_uimodules, Search, CALLBACK, tkMessageBox, Setup
+from lib import moddb
 
 import argparse
 
 mdb = moddb.ModDb()
 
 DLDIR = os.path.join(get_config_path(), "files")
-
-L = logging.getLogger("YAMM.YammiUI")
-
-#CALLBACK["downloadmod"] = lambda modlist: open_window(DownloadModules, [modlist, DLDIR])
-
 
 def handle_url_schema(url):
     result = None
