@@ -3,6 +3,7 @@ import random
 import os
 from urlparse import urljoin
 from utils import get_config_path
+from datetime import datetime
 
 basepath = os.path.join(get_config_path(), "data")
 try:
@@ -63,6 +64,21 @@ class ModEntry(BaseModel):
     updated = DateTimeField(null=True)
     magnet = CharField(null=True)
     torrent = CharField(null=True)
+
+    def add_mod_watch(self):
+        pass
+
+class ModWatch(BaseModel):
+    mod = ForeignKeyField(ModService)
+    version = CharField(null=True)
+    updated = DateTimeField(null=True)
+    
+    def update_versiondata(self):
+        self.version = self.mod.version
+        self.updated = datetime.now()
+    
+    def is_updated(self):
+        return self.version != self.mod.version
 
 DEPENDENCY = [
     (0, "Requires"),
