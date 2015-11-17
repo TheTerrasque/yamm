@@ -87,7 +87,48 @@ class CreateToolTip(object):
         if self.tw:
             self.tw.destroy()
 
+class WatchedMods(BaseWindow):
+    def create_widgets(self, master):
+        class ModWatchWrap(object):
+            def __init__(self, watch, ):
+                self.watch = watch
+            
+            def create_widget(self, master):
+                pack = {
+                    "side": tK.LEFT,
+                    "padx": 5,
+                    "pady": 3
+                }
+                frame = tK.Frame(master)
+                frame.config(relief=tK.SUNKEN, bd=1)
+                frame.pack(fill=tK.BOTH)
+                
+                name = tK.Label(frame, text="%s" % self.watch.mod.name, anchor=tK.W)
+                name.pack(expand=1, fill=tK.X, **pack)
+        
+                version = tK.Label(frame, text="%s" % self.watch.version, anchor=tK.W)
+                version.pack(expand=1, fill=tK.X, **pack)
+                
+                version_new = tK.Label(frame, text="%s" % self.watch.mod.version, anchor=tK.W)
+                version_new.pack(expand=1, fill=tK.X, **pack)
+                
+                name.bind("<Button-1>", self.show_mod)
+            
+                hb = tK.Button(frame, text="Open Mod", command=self.show_mod).pack(**pack)
+                hb2 = tK.Button(frame, text="Pin new version", command=self.pin_version).pack(**pack)
+            
+            def pin_version(self):
+                self.watch.update_versiondata()
+                self.watch.save()
+            
+            def show_mod(self):
+                CALLBACK["showmod"](self.watch.mod)
 
+        frame = self.simple_window("Watched mods")
+        title = tK.Label(frame, text="List of watched mods")
+        title.pack(fill=tK.X)
+        
+    
 class Setup(BaseWindow):
         
     def create_widgets(self, master):

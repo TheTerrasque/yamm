@@ -65,8 +65,15 @@ class ModEntry(BaseModel):
     magnet = CharField(null=True)
     torrent = CharField(null=True)
 
-    def add_mod_watch(self):
-        pass
+    def set_watch(self):
+        watches = ModWatch.select().where(ModWatch.mod == self)
+        if watches:
+            watch = watches.get()
+        else:
+            watch = ModWatch(mod=self)
+            watch.update_versiondata()
+            watch.save()
+        return watch
 
 class ModWatch(BaseModel):
     mod = ForeignKeyField(ModService)
