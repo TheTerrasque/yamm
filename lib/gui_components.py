@@ -8,6 +8,7 @@ import webbrowser
 from .workers import WorkHandler, Workers
 from .settings import SETTINGS, create_settings
 from .system_integration import setup_modorganizer, setup_registry
+from .moddb import ModWatching, ModInstance
 
 from . import torrent
 
@@ -30,6 +31,7 @@ CALLBACK = {
     "services": lambda mdb: open_window(ServiceList, [mdb]),
     "download_complete": lambda mod: mod,
     "settings": lambda x: open_window(Settings, []),
+    "watchlist": lambda x: open_window(WatchedMods, []),
 }
 
 WORKER = None
@@ -122,12 +124,22 @@ class WatchedMods(BaseWindow):
                 self.watch.save()
             
             def show_mod(self):
-                CALLBACK["showmod"](self.watch.mod)
+                CALLBACK["showmod"](ModInstance(self.watch.mod.id, self.watch.mod))
 
         frame = self.simple_window("Watched mods")
         title = tK.Label(frame, text="List of watched mods")
         title.pack(fill=tK.X)
         
+        frameMod = tK.Frame(frame)
+        frameMod.pack(fill=tK.BOTH, expand=1)
+        
+        mwc = ModWatching()
+        self.mwlist = []
+        
+        for mw in mwc.get_all():
+            mwobj = ModWatchWrap(mw)
+            mwobj.create_widget(frameMod)
+            self.mwlist.append(mwobj)
     
 class Setup(BaseWindow):
         
@@ -557,6 +569,19 @@ class ModuleInfo:
         
         dlbutton = tK.Button(frame, text="Download mods", command=self.start_download)
         dlbutton.pack(fill=tK.X)
+        
+        if self.mod.mod.is_watched():
+            watchbutton = tK.Button(frame, text="Remove mod watch", command=self.unwatch_mod)
+            watchbutton.pack(fill=tK.X)
+        else:
+            watchbutton = tK.Button(frame, text="Watch mod", command=self.watch_mod)
+            watchbutton.pack(fill=tK.X)
+    
+    def watch_mod(self):
+        self.mod.mod.set_watch()
+    
+    def unwatch_mod(self):
+        self.mod.mod.remove_watch()
     
     def get_modlist(self):
         depslist = self.mod.get_dependencies().dependencies
@@ -627,13 +652,24 @@ class Search:
         
         button_update = tK.Button(frame, text="Update database", command=self.update_data)
         button_update.pack()
+        
+        mwc = ModWatching()
+        mwall = mwc.get_all().count()
+        mwupdate = mwc.get_updated().count()
+        
+        
+        button_watch = tK.Button(frame, text="Watched mods [%s/%s]" % (mwupdate, mwall), command=self.show_watched)
+        button_watch.pack()
 
         self.status = tK.StringVar()
         status = tK.Label(master, text="", bd=1, relief=tK.SUNKEN, anchor=tK.W, textvariable=self.status)
         status.pack(side=tK.BOTTOM, fill=tK.X)
         
     # -------------------------------------------------
-
+    
+    def show_watched(self):
+        CALLBACK["watchlist"](None)
+    
     def refresh_data(self, event=None):
         e = ""
         if event:

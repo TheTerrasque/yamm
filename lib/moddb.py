@@ -1,4 +1,4 @@
-from storage import ModEntry, ModDependency, ModService, db, get_mod_by_name
+from storage import ModEntry, ModDependency, ModService, db, get_mod_by_name, ModWatch
 
 import logging
 from collections import defaultdict
@@ -12,6 +12,18 @@ def get_modentry(mod_id, db_instance = None):
     if not mod_id in MOD_CACHE:
         MOD_CACHE[mod_id] = ModInstance(mod_id, db_instance)
     return MOD_CACHE[mod_id]
+
+class ModWatching(object):
+    def get_updated(self):
+        q = (ModWatch
+            .select(ModWatch, ModEntry)
+            .join(ModEntry)
+            .where(ModWatch.version != ModEntry.version)
+            )
+        return q
+    
+    def get_all(self):
+        return ModWatch.select()
 
 class ModDependencies(object):
     def __init__(self, mod):

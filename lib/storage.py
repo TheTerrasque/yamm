@@ -65,18 +65,23 @@ class ModEntry(BaseModel):
     magnet = CharField(null=True)
     torrent = CharField(null=True)
 
+    def is_watched(self):
+        return ModWatch.select().where(ModWatch.mod == self).count()
+
+    def remove_watch(self):
+        if self.is_watched():
+            ModWatch.select().where(ModWatch.mod == self).get().delete_instance()
+
     def set_watch(self):
-        watches = ModWatch.select().where(ModWatch.mod == self)
-        if watches:
-            watch = watches.get()
-        else:
+        if not self.is_watched():
             watch = ModWatch(mod=self)
+            watch.save()
             watch.update_versiondata()
             watch.save()
-        return watch
+            return watch
 
 class ModWatch(BaseModel):
-    mod = ForeignKeyField(ModService)
+    mod = ForeignKeyField(ModEntry)
     version = CharField(null=True)
     updated = DateTimeField(null=True)
     
@@ -107,6 +112,6 @@ def get_mod_by_name(name):
 
 def create_tables():
     db.connect()
-    db.create_tables([ModEntry, ModService, ModDependency],  safe=True)
+    db.create_tables([ModEntry, ModService, ModDependency, ModWatch],  safe=True)
 
 create_tables()
