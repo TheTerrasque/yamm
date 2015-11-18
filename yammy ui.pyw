@@ -89,7 +89,7 @@ def handle_url_schema(url):
 def main(mod=None):
     initialize_uimodules()
     
-    app = Search(ROOT, mdb)
+    app = Search(mdb, MASTER=ROOT)
     
     if mod:
         CALLBACK["showmod"](mod)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     LOADER.exit()
     
     if args.setup:
-        app = Setup(ROOT)
+        app = Setup(MASTER=ROOT)
         ROOT.mainloop()
     else:
         if args.url:

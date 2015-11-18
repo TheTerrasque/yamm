@@ -21,17 +21,16 @@ except ImportError:
     winreg = None
 
 def open_window(module, data):
-    top = tK.Toplevel()
-    module(top, *data)
+    module(*data)
     return module
 
 CALLBACK = {
-    "showmod": lambda mod: open_window(ModuleInfo, [mod]),
-    "downloadmod": lambda modlist: open_window(DownloadModules, [modlist]),
-    "services": lambda mdb: open_window(ServiceList, [mdb]),
+    "showmod": lambda mod: ModuleInfo(mod),
+    "downloadmod": lambda modlist: DownloadModules(modlist),
+    "services": lambda mdb: ServiceList(mdb),
     "download_complete": lambda mod: mod,
-    "settings": lambda x: open_window(Settings, []),
-    "watchlist": lambda x: open_window(WatchedMods, []),
+    "settings": lambda x: Settings(),
+    "watchlist": lambda x: WatchedMods(),
 }
 
 WORKER = None
@@ -40,24 +39,44 @@ def initialize_uimodules():
     global WORKER
     WORKER = WorkHandler(SETTINGS)
 
+
 class BaseWindow(object):
-    def __init__(self, master, *args, **kwargs):
+    title = "YAMM window"
+    height = 500
+    width = 300
+    
+    def setup_root(self, master = None):
+        if not master:
+            master = tK.Toplevel()
+        master.focus()
         self.master = master
-        self.create_widgets(master)
-        #master.focus()
+        
+        frame = self.simple_window(master, self.title, self.height, self.width)
+        return frame
+    
+    def __init__(self, *args, **kwargs):
+        MASTER = kwargs.pop("MASTER", None)
+        
         self.init(*args, **kwargs)
+        
+        self.frame = self.setup_root(MASTER)
+        self.create_widgets(self.frame)
 
     def init(self, *args, **kwargs):
         pass
     
-    def simple_window(self, title="YAMM", height=500, width=300):
-        self.master.title(title)
-        self.master.minsize(width=width,  height=height)
-        
-        frame = tK.Frame(self.master)
+    def update_content(self):
+        self.master.destroy()
+        self.create_widgets(self.master)    
+    
+    def simple_window(self, master, title, height, width):
+        master.title(title)
+        master.minsize(width=width,  height=height)
+        frame = tK.Frame(master)
         frame.pack(fill=tK.BOTH, expand=1)
         frame.focus()
         return frame
+
 
 class CreateToolTip(object):
     '''
@@ -89,8 +108,10 @@ class CreateToolTip(object):
         if self.tw:
             self.tw.destroy()
 
+
 class WatchedMods(BaseWindow):
-    def create_widgets(self, master):
+    title = "Watched mods"
+    def create_widgets(self, frame):
         class ModWatchWrap(object):
             def __init__(self, watch, ):
                 self.watch = watch
@@ -126,7 +147,6 @@ class WatchedMods(BaseWindow):
             def show_mod(self):
                 CALLBACK["showmod"](ModInstance(self.watch.mod.id, self.watch.mod))
 
-        frame = self.simple_window("Watched mods")
         title = tK.Label(frame, text="List of watched mods")
         title.pack(fill=tK.X)
         
@@ -140,19 +160,19 @@ class WatchedMods(BaseWindow):
             mwobj = ModWatchWrap(mw)
             mwobj.create_widget(frameMod)
             self.mwlist.append(mwobj)
+
     
 class Setup(BaseWindow):
-        
-    def create_widgets(self, master):
-        frame = self.simple_window("YAMM setup")
-        
+    title  = "YAMM setup"
+    height = 70
+    def create_widgets(self, frame):
         tK.Label(frame, text="Setup of YAMM system integration").pack(fill=tK.X)
         
         # tK.Button(frame, text="Install YAMM URL handler", command=self.setup_url).pack(fill=tK.X)
         # tK.Button(frame, text="Install Mod Organizer plugin - needs version 1.3.5 or later", command=self.setup_mo).pack(fill=tK.X)
         
         self.setup_mo()
-        master.destroy()
+        self.master.destroy()
 
     def setup_url(self):
         try:
@@ -174,11 +194,11 @@ class Setup(BaseWindow):
         except:
             L.exception("Could not install MO plugin")
             tkMessageBox.showinfo("Install failed", "There was a problem installing the Mod Organizer plugin.\n\nCheck the 'yamm_ui.log' file for details")
+
         
 class Settings(BaseWindow):
-    def init(self):
-        self.create_settings()
-        
+    title = "YAMM Settings"
+
     def create_settings(self):
         pack = {
              "side": tK.LEFT,
@@ -255,7 +275,7 @@ class Settings(BaseWindow):
         self.settings = create_settings()
         self.setting_entries = []
         
-        settings = tK.Frame(self.baseframe)
+        settings = tK.Frame(self.frame)
         settings.pack(expand=1, fill=tK.X)
         
         for category in self.settings.entries.values():
@@ -264,15 +284,10 @@ class Settings(BaseWindow):
             for setting in category.entries.values():
                 e = CTypes[setting.valuetype] (group, setting)
                 self.setting_entries.append(e)
-
-        
-    def create_widgets(self, master):
-        self.baseframe = self.simple_window("YAMM Settings")
-
-        # (bla, input, browse)
-        # tkFileDialog.askdirectory(parent=self.master, mustexist=True, title="Choose Mod Organizer directory")
-        
-        tK.Button(self.baseframe, text="Save settings", command=self.save).pack(side=tK.BOTTOM, expand=1, fill=tK.X)
+  
+    def create_widgets(self, frame):
+        tK.Button(frame, text="Save settings", command=self.save).pack(side=tK.BOTTOM, expand=1, fill=tK.X)
+        self.create_settings()
         
     def save(self):
         for entry in self.setting_entries:
@@ -283,13 +298,12 @@ class Settings(BaseWindow):
         
         
 class ServiceList(BaseWindow):
+    title = "YAMM Services"
+    
     def init(self, mdb):
         self.mdb = mdb
-        self.show_services()
 
-    def create_widgets(self, master):
-        frame = self.simple_window("YAMM Services")
-        
+    def create_widgets(self, frame):
         title = tK.Label(frame, text="Active services")
         title.pack(fill=tK.X)
         
@@ -298,6 +312,8 @@ class ServiceList(BaseWindow):
         
         tK.Button(frame, text="Add service", command=self.add_service).pack(side=tK.LEFT)
         tK.Button(frame, text="Remove service", command=self.remove_service).pack(side=tK.LEFT)
+        
+        self.show_services()
         
     def add_service(self):
         service = tkSimpleDialog.askstring("Add service", "Service URL", parent=self.master)
@@ -447,25 +463,22 @@ class ModDlEntry:
     
     def show_mod(self, event):
         CALLBACK["showmod"](self.mod)
+
     
-class DownloadModules:
-   
-    def __init__(self, master, modlist, downloaddir = None):
+class DownloadModules(BaseWindow):
+    title = "Modules Download Window"
+    width=400
+    height=500
+    
+    def init(self, modlist, downloaddir = None):
         self.downloaddir = SETTINGS["directory.download"]
         
         if downloaddir:
             self.downloaddir = downloaddir
         
         self.mods = modlist
-        self.setup_widgets(master)
-        self.master = master
-        master.focus()
 
-    def setup_widgets(self, master):
-        master.title("Modules Download Window")
-        master.minsize(width=400,  height=500)
-        
-        frame = tK.Frame(master)
+    def create_widgets(self, frame):
         frame.pack(fill=tK.BOTH, expand=1)
         
         title = tK.Label(frame, text="Mod download list")
@@ -503,21 +516,19 @@ class DownloadModules:
         for m in self.modwidgets:
             m.download()
 
-class ModuleInfo:
+
+class ModuleInfo(BaseWindow):
     
-    def __init__(self, master, mod):
+    def init(self, mod):
         self.mod = mod
-        self.setup_widgets(master)
-        master.focus()
+        self.title = "Module %s" % self.mod.mod.name
 
     def show_webpage(self, e):
         if self.mod.mod.homepage:
             webbrowser.open(self.mod.mod.homepage)
     
-    def setup_widgets(self, master):
-        master.title("Module %s" % self.mod.mod.name)
-        frame = tK.Frame(master)
-        frame.pack(fill=tK.BOTH, expand=1)
+    def create_widgets(self, frame):
+        
         v = "%s %s" % (self.mod.mod.name, self.mod.mod.version)
         if self.mod.mod.author:
             v = "%s by %s" % (v, self.mod.mod.author)
@@ -599,18 +610,18 @@ class ModuleInfo:
         CALLBACK["downloadmod"](dlmods)
 
          
-class Search:
+class Search(BaseWindow):
     modmap = []
     
-    def __init__(self, master, mod_db):
+    title = "YAMMy UI"
+    width=300
+    height=500
+    
+    def init(self, mod_db):
         self.mod_db = mod_db
-        self.setup_widgets(master)
-        master.after(20,self.set_default_services)
 
-    def setup_widgets_search(self, master):
-        master.minsize(width=300,  height=500)
-        
-        frame = tK.Frame(master)
+    def setup_widgets_search(self, container):
+        frame = tK.Frame(container)
         frame.pack(fill=tK.X)
 
         self.entry_search = tK.Entry(frame)
@@ -627,7 +638,7 @@ class Search:
         self.button_service = tK.Button(frame, text="Services", command=self.show_services)
         self.button_service.pack(side=tK.RIGHT)
         
-        frame2 = tK.Frame(master)
+        frame2 = tK.Frame(container)
         frame2.pack(fill=tK.BOTH, expand=1)
         
         self.modsbox = tK.Listbox(frame2)
@@ -635,19 +646,11 @@ class Search:
         
         self.modsbox.bind("<Double-Button-1>", self.show_module)
 
-    def show_settings(self):
-        CALLBACK["settings"](None)
-
-    def show_services(self):
-        CALLBACK["services"](self.mod_db)
-    
-    def setup_widgets(self, master):
-
-        master.title("YAMMy UI")
+    def create_widgets(self, rootframe):
         
-        self.setup_widgets_search(master)
+        self.setup_widgets_search(rootframe)
 
-        frame = tK.Frame(master)
+        frame = tK.Frame(rootframe)
         frame.pack()
         
         button_update = tK.Button(frame, text="Update database", command=self.update_data)
@@ -657,15 +660,21 @@ class Search:
         mwall = mwc.get_all().count()
         mwupdate = mwc.get_updated().count()
         
-        
         button_watch = tK.Button(frame, text="Watched mods [%s/%s]" % (mwupdate, mwall), command=self.show_watched)
         button_watch.pack()
 
         self.status = tK.StringVar()
-        status = tK.Label(master, text="", bd=1, relief=tK.SUNKEN, anchor=tK.W, textvariable=self.status)
+        status = tK.Label(rootframe, text="", bd=1, relief=tK.SUNKEN, anchor=tK.W, textvariable=self.status)
         status.pack(side=tK.BOTTOM, fill=tK.X)
         
+        self.master.after(20,self.set_default_services)
     # -------------------------------------------------
+
+    def show_settings(self):
+        CALLBACK["settings"](None)
+
+    def show_services(self):
+        CALLBACK["services"](self.mod_db)
     
     def show_watched(self):
         CALLBACK["watchlist"](None)
