@@ -66,8 +66,9 @@ class BaseWindow(object):
         pass
     
     def update_content(self):
-        self.master.destroy()
-        self.create_widgets(self.master)    
+        self.frame.destroy()
+        self.frame = self.setup_root(self.master)
+        self.create_widgets(self.frame)    
     
     def simple_window(self, master, title, height, width):
         master.title(title)
@@ -113,8 +114,9 @@ class WatchedMods(BaseWindow):
     title = "Watched mods"
     def create_widgets(self, frame):
         class ModWatchWrap(object):
-            def __init__(self, watch, ):
+            def __init__(self, watch, parent):
                 self.watch = watch
+                self.parent = parent
             
             def create_widget(self, master):
                 pack = {
@@ -139,10 +141,16 @@ class WatchedMods(BaseWindow):
             
                 hb = tK.Button(frame, text="Open Mod", command=self.show_mod).pack(**pack)
                 hb2 = tK.Button(frame, text="Pin new version", command=self.pin_version).pack(**pack)
+                hb3 = tK.Button(frame, text="Unwatch", command=self.remove_watch).pack(**pack)
+            
+            def remove_watch(self):
+                self.watch.mod.remove_watch()
+                self.parent.update_content()
             
             def pin_version(self):
                 self.watch.update_versiondata()
                 self.watch.save()
+                self.parent.update_content()
             
             def show_mod(self):
                 CALLBACK["showmod"](ModInstance(self.watch.mod.id, self.watch.mod))
@@ -157,7 +165,7 @@ class WatchedMods(BaseWindow):
         self.mwlist = []
         
         for mw in mwc.get_all():
-            mwobj = ModWatchWrap(mw)
+            mwobj = ModWatchWrap(mw, self)
             mwobj.create_widget(frameMod)
             self.mwlist.append(mwobj)
 
@@ -590,9 +598,11 @@ class ModuleInfo(BaseWindow):
     
     def watch_mod(self):
         self.mod.mod.set_watch()
+        self.update_content()
     
     def unwatch_mod(self):
         self.mod.mod.remove_watch()
+        self.update_content()
     
     def get_modlist(self):
         depslist = self.mod.get_dependencies().dependencies
@@ -704,10 +714,9 @@ class Search(BaseWindow):
     def set_default_services(self):
         if not self.mod_db.get_services().count():
             self.status.set("Doing initial setup..")
-            #self.mod_db.add_service("http://terra.thelazy.net/yamm/mods.json")
             self.update_data()
         else:
-            self.update_data(False)
+            self.update_data(fetch=False)
         
     def show_module(self, e):
         for index in self.modsbox.curselection():
