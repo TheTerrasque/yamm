@@ -3,8 +3,11 @@ import tkMessageBox
 import tkSimpleDialog
 import tkFileDialog
 from .utils import get_filesize_display
+
 import os
 import webbrowser
+from collections import defaultdict
+
 from .workers import WorkHandler, Workers
 from .settings import SETTINGS, create_settings
 from .system_integration import setup_modorganizer, setup_registry
@@ -40,27 +43,62 @@ def initialize_uimodules():
     WORKER = WorkHandler(SETTINGS)
 
 
+class EventHandler(object):
+    signals = defaultdict(list)
+    
+    def __init__(self):
+        self.signals = defaultdict(list)
+    
+    def listen(self, signal, handler):
+        self.signals[signal].append(handler)
+    
+    def unregister(self, signal, handler):
+        self.signals[signal].remove(handler)
+    
+    def send(self, signal, callback=None):
+        for function in self.signals[signal]:
+            function()
+        if callback:
+            callback()
+
+EH = EventHandler()
+    
+
 class BaseWindow(object):
     title = "YAMM window"
     height = 500
     width = 300
+    refresh_signals = []
     
     def setup_root(self, master = None):
         if not master:
             master = tK.Toplevel()
-        master.focus()
         self.master = master
         
         frame = self.simple_window(master, self.title, self.height, self.width)
         return frame
     
+    def setup_signals(self):
+        for signal in self.refresh_signals:
+            EH.listen(signal, self.update_content)
+    
     def __init__(self, *args, **kwargs):
         MASTER = kwargs.pop("MASTER", None)
-        
         self.init(*args, **kwargs)
-        
+        self.setup_signals()
         self.frame = self.setup_root(MASTER)
+        self.master.focus()       
+        self.master.protocol("WM_DELETE_WINDOW", self.on_destroy_cleanup)
         self.create_widgets(self.frame)
+    
+    def send_signal(self, signal):       
+        EH.send(signal)
+        self.master.after(50,self.master.focus)
+        
+    def on_destroy_cleanup(self):
+        for signal in self.refresh_signals:
+            EH.unregister(signal, self.update_content)
+        self.master.destroy()
 
     def init(self, *args, **kwargs):
         pass
@@ -68,7 +106,7 @@ class BaseWindow(object):
     def update_content(self):
         self.frame.destroy()
         self.frame = self.setup_root(self.master)
-        self.create_widgets(self.frame)    
+        self.create_widgets(self.frame)
     
     def simple_window(self, master, title, height, width):
         master.title(title)
@@ -112,6 +150,8 @@ class CreateToolTip(object):
 
 class WatchedMods(BaseWindow):
     title = "Watched mods"
+    refresh_signals = ["mod_watch_changed", "mod_changed"]
+    
     def create_widgets(self, frame):
         class ModWatchWrap(object):
             def __init__(self, watch, parent):
@@ -145,12 +185,13 @@ class WatchedMods(BaseWindow):
             
             def remove_watch(self):
                 self.watch.mod.remove_watch()
-                self.parent.update_content()
+                self.parent.send_signal("mod_watch_changed")
+                #self.parent.update_content()
             
             def pin_version(self):
                 self.watch.update_versiondata()
                 self.watch.save()
-                self.parent.update_content()
+                self.parent.send_signal("mod_watch_changed")
             
             def show_mod(self):
                 CALLBACK["showmod"](ModInstance(self.watch.mod.id, self.watch.mod))
@@ -526,6 +567,7 @@ class DownloadModules(BaseWindow):
 
 
 class ModuleInfo(BaseWindow):
+    refresh_signals = ["mod_watch_changed", "mod_changed"]
     
     def init(self, mod):
         self.mod = mod
@@ -586,23 +628,25 @@ class ModuleInfo(BaseWindow):
             
         description.config(state=tK.DISABLED, wrap=tK.WORD)
         
-        dlbutton = tK.Button(frame, text="Download mods", command=self.start_download)
+        bFrame = tK.Frame(frame)
+        bFrame.pack(fill=tK.X)
+        dlbutton = tK.Button(bFrame, text="Download all required mods", command=self.start_download)
         dlbutton.pack(fill=tK.X)
         
         if self.mod.mod.is_watched():
-            watchbutton = tK.Button(frame, text="Remove mod watch", command=self.unwatch_mod)
+            watchbutton = tK.Button(bFrame, text="Remove mod watch for this mod", command=self.unwatch_mod)
             watchbutton.pack(fill=tK.X)
         else:
-            watchbutton = tK.Button(frame, text="Watch mod", command=self.watch_mod)
+            watchbutton = tK.Button(bFrame, text="Watch this mod for updates", command=self.watch_mod)
             watchbutton.pack(fill=tK.X)
     
     def watch_mod(self):
         self.mod.mod.set_watch()
-        self.update_content()
+        self.send_signal("mod_watch_changed")
     
     def unwatch_mod(self):
         self.mod.mod.remove_watch()
-        self.update_content()
+        self.send_signal("mod_watch_changed")
     
     def get_modlist(self):
         depslist = self.mod.get_dependencies().dependencies
@@ -626,6 +670,7 @@ class Search(BaseWindow):
     title = "YAMMy UI"
     width=300
     height=500
+    refresh_signals = ["mod_watch_changed", "mod_changed"]
     
     def init(self, mod_db):
         self.mod_db = mod_db
@@ -661,17 +706,17 @@ class Search(BaseWindow):
         self.setup_widgets_search(rootframe)
 
         frame = tK.Frame(rootframe)
-        frame.pack()
+        frame.pack(fill=tK.X)
         
         button_update = tK.Button(frame, text="Update database", command=self.update_data)
-        button_update.pack()
+        button_update.pack(side=tK.LEFT, fill=tK.X, expand = 1)
         
         mwc = ModWatching()
         mwall = mwc.get_all().count()
         mwupdate = mwc.get_updated().count()
         
-        button_watch = tK.Button(frame, text="Watched mods [%s/%s]" % (mwupdate, mwall), command=self.show_watched)
-        button_watch.pack()
+        self.button_watch = tK.Button(frame, text="Watched mods [%s/%s]" % (mwupdate, mwall), command=self.show_watched)
+        self.button_watch.pack(side=tK.LEFT, fill=tK.X, expand = 1)
 
         self.status = tK.StringVar()
         status = tK.Label(rootframe, text="", bd=1, relief=tK.SUNKEN, anchor=tK.W, textvariable=self.status)
@@ -701,7 +746,6 @@ class Search(BaseWindow):
             for updater in self.mod_db.get_service_updaters():
                 WORKER.add_order(Workers.ServiceUpdate, updater, self.refresh_data)
         self.refresh_data()
-        
 
     def list_modules(self, modulelist):
         self.modmap = modulelist
