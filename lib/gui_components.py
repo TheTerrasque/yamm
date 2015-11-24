@@ -559,7 +559,7 @@ class DownloadModules(BaseWindow):
                 try:
                     rpc.version()
                 except:
-                    tkMessageBox.showinfo("Torrent client", "Can't connect to Transmission. Not started perhaps?")
+                    tkMessageBox.showinfo("Torrent client", "Can't connect to Transmission. Either not started, or wrongly configured?\nPlease check that it's running before clicking ok")
             else:    
                 tkMessageBox.showinfo("Torrent client", "A torrent client is configured for downloading of files. Check if it's started before continuing :)")
         for m in self.modwidgets:
@@ -708,15 +708,12 @@ class Search(BaseWindow):
         frame = tK.Frame(rootframe)
         frame.pack(fill=tK.X)
         
-        button_update = tK.Button(frame, text="Update database", command=self.update_data)
+        button_update = tK.Button(frame, text="Update database", command=self.action_button_update)
         button_update.pack(side=tK.LEFT, fill=tK.X, expand = 1)
         
-        mwc = ModWatching()
-        mwall = mwc.get_all().count()
-        mwupdate = mwc.get_updated().count()
-        
-        self.button_watch = tK.Button(frame, text="Watched mods [%s/%s]" % (mwupdate, mwall), command=self.show_watched)
+        self.button_watch = tK.Button(frame, text="Watched mods", command=self.show_watched)
         self.button_watch.pack(side=tK.LEFT, fill=tK.X, expand = 1)
+        self.update_watch_button()
 
         self.status = tK.StringVar()
         status = tK.Label(rootframe, text="", bd=1, relief=tK.SUNKEN, anchor=tK.W, textvariable=self.status)
@@ -724,6 +721,24 @@ class Search(BaseWindow):
         
         self.master.after(20,self.set_default_services)
     # -------------------------------------------------
+
+    def update_content(self):
+        # Override of default BaseWindow function
+        self.update_data(False)
+
+    def update_watch_button(self):
+        mwc = ModWatching()
+        mwall = mwc.get_all().count()
+        mwupdate = mwc.get_updated().count()
+        self.button_watch.configure(text="Watched mods [%s/%s]" % (mwupdate, mwall))
+        if mwupdate:
+            self.button_watch.config(background="#ACFAB7")
+
+    def action_button_update(self):
+        self.update_data()
+
+    def service_updated_callback(self, e):
+        self.refresh_data(e)
 
     def show_settings(self):
         CALLBACK["settings"](None)
@@ -740,11 +755,12 @@ class Search(BaseWindow):
             e = "%s updated: " % event.entry.service.name
         self.status.set(e + "%s modules in database" % self.mod_db.get_module_count())
         self.list_modules(self.mod_db.get_modules_not_in_category("framework"))
-
+        self.update_watch_button()
+    
     def update_data(self, fetch=True):
         if fetch:
             for updater in self.mod_db.get_service_updaters():
-                WORKER.add_order(Workers.ServiceUpdate, updater, self.refresh_data)
+                WORKER.add_order(Workers.ServiceUpdate, updater, self.service_updated_callback)
         self.refresh_data()
 
     def list_modules(self, modulelist):

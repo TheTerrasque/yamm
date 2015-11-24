@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "YAMM"
-#define MyAppVersion "0.1.3b2"
+#define MyAppVersion "0.1.4"
 #define MyAppPublisher "Terrasque"
 #define MyAppURL "https://github.com/TheTerrasque/yamm"
 #define MyAppExeName "yammy ui.exe"

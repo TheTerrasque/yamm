@@ -240,9 +240,7 @@ class ServiceUpdater(object):
     def save_mod_instance(self, mod):
         """Create or update a mod instance in DB"""
         modentry, created = ModEntry.get_or_create(name=mod["name"], service=self.service)
-        
-        modentry.service = self.service
-        
+
         # Optional entries
         for field in ["version", "description", "filehash", "filesize", "homepage", "author", "category", "filename", "magnet", "torrent"]:
             if mod.get(field):
@@ -266,7 +264,7 @@ class ServiceUpdater(object):
                 self.update_mods(data["mods"])
         
     def update_mods(self, modlist):
-        self.service.clear_mods()
+        #self.service.clear_mods()
         
         for mod in modlist:
             modentry, new_entry = self.save_mod_instance(mod)
@@ -274,5 +272,5 @@ class ServiceUpdater(object):
             self.set_dependency_relation(modentry, mod.get("depends", []), 0)                       # Requires
             self.set_dependency_relation(modentry, [modentry.name] + mod.get("provides", []), 1)    # Provides
             self.set_dependency_relation(modentry, mod.get("conflict", []), 2)                      # In conflict with
-            self.set_dependency_relation(modentry, mod.get("recommends", []), 3)                     # Recommends
+            self.set_dependency_relation(modentry, mod.get("recommends", []), 3)                    # Recommends
         MOD_CACHE.clear()
