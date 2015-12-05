@@ -26,15 +26,22 @@ class ModWatching(object):
         return ModWatch.select()
 
 class ModDependencies(object):
-    def __init__(self, mod):
+    def __init__(self, mod, load_hierarchy=0):
         self.mod = mod
+        self.load_order_value = load_hierarchy + 1
         self.dependencies = self.scan_mod()
 
     def get_mods_providing(self, tag):
         return [get_modentry(x.mod.id, x.mod) for x in ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == tag)]
         
     def scan_mod(self):
+        """
+        Iterate over the mod's requirements and sub-requirements and creates a dependency structure
+        """
         class ModDepEntry(object):
+            """
+            Keep track of a tag, and who provides / requires / recommends / conflicts with it
+            """
             def __init__(self):
                 self.required_by = set()
                 self.provided_by = set()
@@ -43,13 +50,15 @@ class ModDependencies(object):
         
             def get_provider(self):
                 """
-                Return a provider for this entry, or None if none are fund
+                Return a mod providing this tag entry, or None if none are fund
                 """
                 if self.provided_by:
                     return list(self.provided_by)[0]
         
             def add_relation(self, mod, relation):
+                # Pick the set from the relation index
                 entrylist = [self.required_by, self.provided_by, self.conflicts_with, self.recommended_by][relation]
+                # Add the mod to the set
                 entrylist.add(mod)
         
             def add_providers(self, providerlist):
@@ -68,6 +77,7 @@ class ModDependencies(object):
         
         for i, name in enumerate(["Requires", "Provides", "Conflicts", "Recommends"]):
             dep_tags = self.mod.get_dependency_tags(i)
+            
             for tag in dep_tags:
                 providers = self.get_mods_providing(tag)
                 
@@ -76,10 +86,11 @@ class ModDependencies(object):
                 
                 for provider in providers:
                     if provider.VISITED:
+                        provider.set_load_order_weight(self.load_order_value + 1)
                         continue
                     provider.VISITED = True
                     if i == 0: #Only follow if required
-                        d = provider.get_dependencies(False)
+                        d = provider.get_dependencies(False, self.load_order_value + 1)
                         for key in d.dependencies:
                             depmap[key].update(d.dependencies[key])
         return depmap
@@ -97,11 +108,12 @@ class ModDependencies(object):
                     mods.append(list(value.provided_by)[0]) #Pick random'ish if more than one.
                 else:
                     unknowntags.append((key, value))
-        return {"mods":sorted(mods, key= lambda x: x.mod.name), "unknown": unknowntags}
+        return {"mods": sorted(mods, key= lambda x: x.LOAD_ORDER_WEIGHT), "unknown": unknowntags}
 
 class ModInstance(object):
     DEPS = None
     VISITED = False
+    LOAD_ORDER_WEIGHT = 0
     
     def __repr__(self):
         return u"<Mod:%s>" % self.mod.name
@@ -151,13 +163,18 @@ class ModInstance(object):
         """
         return [x.dependency for x in ModDependency.select().where(ModDependency.mod==self.mod, ModDependency.relation == relation)]
     
-    def get_dependencies(self, reset=True):
+    def set_load_order_weight(self, value):
+        self.LOAD_ORDER_WEIGHT = max(value, self.LOAD_ORDER_WEIGHT)
+    
+    def get_dependencies(self, reset=True, load_order_weight=0):
+        self.set_load_order_weight(load_order_weight)
+        
         if reset:
             for k in MOD_CACHE:
                 MOD_CACHE[k].VISITED = False
         
         if not self.DEPS:
-            self.DEPS = ModDependencies(self)
+            self.DEPS = ModDependencies(self, self.LOAD_ORDER_WEIGHT)
         
         return self.DEPS
     

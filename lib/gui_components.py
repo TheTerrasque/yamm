@@ -548,7 +548,7 @@ class DownloadModules(BaseWindow):
         self.button_mo.pack(fill=tK.X, anchor=tK.S)
         
     def send_to_mo(self):
-        for x in self.modwidgets:
+        for x in reversed(self.modwidgets):
             x.install_in_mo()
     
     def start_download(self):
@@ -654,7 +654,7 @@ class ModuleInfo(BaseWindow):
         recommends = [(k, x.get_provider()) for k, x in depslist.items() if x.recommended_by]
         def getkey(obj):
             if obj[1]:
-                return obj[1].mod.name
+                return obj[1].LOAD_ORDER_WEIGHT
             return None
         return [sorted(deps, key=getkey), sorted(recommends, key=getkey)]
     
