@@ -32,6 +32,7 @@ LOADER = Loader(ROOT)
 import logging
 from lib.utils import get_config_path, os
 import os.path
+import urllib
 
 def setup_logging(debug=False):    
     logfile = os.path.join(get_config_path(), "yamm_ui.log")
@@ -76,6 +77,7 @@ def handle_url_schema(url):
             return True
         
     command, value = url.split(":", 1)
+    value = urllib.unquote(value)
     if command == "service":
         if add_a_service(value):
             mdb.update_services()
