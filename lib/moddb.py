@@ -25,14 +25,20 @@ class ModWatching(object):
     def get_all(self):
         return ModWatch.select()
 
+def get_mod_for(tag):
+    mods = get_mods_providing(tag)
+    if mods:
+        return mods[0]
+    return tag
+
+def get_mods_providing(tag):
+    return [get_modentry(x.mod.id, x.mod) for x in ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == tag)]
+
 class ModDependencies(object):
     def __init__(self, mod, load_hierarchy=0):
         self.mod = mod
         self.load_order_value = load_hierarchy + 1
         self.dependencies = self.scan_mod()
-
-    def get_mods_providing(self, tag):
-        return [get_modentry(x.mod.id, x.mod) for x in ModDependency.select().where(ModDependency.relation == 1, ModDependency.dependency == tag)]
         
     def scan_mod(self):
         """
@@ -79,7 +85,7 @@ class ModDependencies(object):
             dep_tags = self.mod.get_dependency_tags(i)
             
             for tag in dep_tags:
-                providers = self.get_mods_providing(tag)
+                providers = get_mods_providing(tag)
                 
                 depmap[tag].add_providers(providers)
                 depmap[tag].add_relation(self.mod, i)
@@ -136,6 +142,20 @@ class ModInstance(object):
             h = create_filehash(path)
             return h == self.mod.filehash
         return approve_if_no_dbhash
+    
+    def dep_requires(self):
+        """
+        Return list of required mods
+        """
+        tags = self.get_dependency_tags()
+        return [get_mod_for(x) for x in tags]
+
+    def dep_recommends(self):
+        """
+        Return list of recommended mods
+        """
+        tags = self.get_dependency_tags(3)
+        return [get_mod_for(x) for x in tags]
     
     def get_torrent_link(self):
         if self.mod.torrent and self.mod.service.get_torrent_path():

@@ -2,6 +2,7 @@ import Tkinter as tK
 import tkMessageBox
 import tkSimpleDialog
 import tkFileDialog
+import ttk
 from .utils import get_filesize_display
 
 import os
@@ -23,12 +24,15 @@ try:
 except ImportError:
     winreg = None
 
+import pprint
+
 def open_window(module, data):
     module(*data)
     return module
 
 CALLBACK = {
     "showmod": lambda mod: ModuleInfo(mod),
+    "showmoddep": lambda mod: ModuleDependencyInfo(mod),
     "downloadmod": lambda modlist: DownloadModules(modlist),
     "services": lambda mdb: ServiceList(mdb),
     "download_complete": lambda mod: mod,
@@ -565,7 +569,31 @@ class DownloadModules(BaseWindow):
         for m in self.modwidgets:
             m.download()
 
+class ModuleDependencyInfo(BaseWindow):
 
+    def init(self, mod):
+        self.mod = mod
+        self.title = "Module %s dependencies" % self.mod.mod.name    
+
+    def create_widgets(self, frame):
+        self.tree = ttk.Treeview(frame)
+        self.tree.pack(expand=1, fill=tK.BOTH)
+        self.create_tree_nodes(self.mod)
+        
+    def create_tree_nodes(self, mod, parent="", seen_mods=[]):
+        #print " " * len(seen_mods) + mod.mod.name
+        
+        modentry = self.tree.insert(parent, "end", text="%s" % mod.mod.name)
+        if len(seen_mods) < 1:
+            self.tree.item(modentry, open=True)
+        
+        seen_mods = seen_mods[:]
+        seen_mods.append(mod.mod.name)
+        
+        for submod in mod.dep_requires():
+            if submod.mod.name not in seen_mods:
+                self.create_tree_nodes(submod, modentry, seen_mods)
+        
 class ModuleInfo(BaseWindow):
     refresh_signals = ["mod_watch_changed", "mod_changed"]
     
@@ -650,6 +678,7 @@ class ModuleInfo(BaseWindow):
     
     def get_modlist(self):
         depslist = self.mod.get_dependencies().dependencies
+
         deps = [(k, x.get_provider()) for k, x in depslist.items() if x.required_by]
         recommends = [(k, x.get_provider()) for k, x in depslist.items() if x.recommended_by]
         def getkey(obj):
@@ -659,6 +688,8 @@ class ModuleInfo(BaseWindow):
         return [sorted(deps, key=getkey), sorted(recommends, key=getkey)]
     
     def start_download(self):
+        CALLBACK["showmoddep"](self.mod)
+        return
         modlist = self.get_modlist()[0]
         dlmods = [self.mod] + [x[1] for x in modlist if x[1]]
         CALLBACK["downloadmod"](dlmods)
