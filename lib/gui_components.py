@@ -570,29 +570,142 @@ class DownloadModules(BaseWindow):
             m.download()
 
 class ModuleDependencyInfo(BaseWindow):
-
+    STATES = ("Install", "Ignore")
     def init(self, mod):
         self.mod = mod
+        self.modmap = {}
         self.title = "Module %s dependencies" % self.mod.mod.name    
 
     def create_widgets(self, frame):
         self.tree = ttk.Treeview(frame)
+        
+        self.tree.tag_configure('recommended', background='#BCC3F5')
+        self.tree.tag_configure('required', background='#F5BCDF')
+        self.tree.tag_configure('source', background='#BCF5D2')
+        self.tree.tag_configure('unknown', foreground='#f00')
+        
+        # Remember to change values[2] in button_toggle_state if changing action's placement
+        self.tree['columns'] = ('subs', 'relation', 'action', 'version', 'size', 'source')
+        self.tree.heading('relation', text='Relation')
+        self.tree.heading('action', text='Action')
+        self.tree.heading('version', text='Version')
+        self.tree.heading('size', text='File size')
+        self.tree.heading('source', text='Source')
+        self.tree.heading('subs', text='Mods below this')
+        
         self.tree.pack(expand=1, fill=tK.BOTH)
+        
+        bFrame = tK.Frame(frame)
+        bFrame.pack(fill=tK.X)
+        
+        self.f_title = tK.Label(bFrame, text="No mod selected")
+        self.f_title.pack(side=tK.LEFT, fill=tK.X)
+        
+        self.f_toggleState = tK.Button(bFrame, text="Toggle action", state=tK.DISABLED, command=self.button_toggle_state)
+        self.f_toggleState.pack(side=tK.RIGHT)
+        
+        self.f_showMod = tK.Button(bFrame, text="Show mod info", state=tK.DISABLED, command=self.button_open_modinfo)
+        self.f_showMod.pack(side=tK.RIGHT)
+        
+        self.f_description = tK.Label(frame, text="Click on a mod")
+        self.f_description.pack(fill=tK.X)
+        
+        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        
         self.create_tree_nodes(self.mod)
+   
+    def button_toggle_state(self):
+        mod, is_mod, modid = self.get_selected_mod()
         
-    def create_tree_nodes(self, mod, parent="", seen_mods=[]):
-        #print " " * len(seen_mods) + mod.mod.name
+        info = self.tree.item(modid)
+        currstate = info["values"][2]
+        newstate = currstate == self.STATES[0] and self.STATES[1] or self.STATES[0]
+        self.tree.set(modid, "action", newstate)
+    
+    def button_open_modinfo(self):
+        mod, is_mod, modid = self.get_selected_mod()
+        CALLBACK["showmod"](mod)
+    
+    def on_select(self, stuff):
+        mod, is_mod, modid = self.get_selected_mod()
         
-        modentry = self.tree.insert(parent, "end", text="%s" % mod.mod.name)
+        if is_mod:
+            self.f_showMod.config(state=tK.NORMAL)
+            self.f_toggleState.config(state=tK.NORMAL)
+            self.f_description['text'] = mod.mod.description
+            self.f_title['text'] = mod.mod.name
+        else:
+            self.f_showMod.config(state=tK.DISABLED)
+            self.f_toggleState.config(state=tK.DISABLED)
+            self.f_description['text'] = "No information about this mod was found."
+            self.f_title['text'] = mod
+    
+    def get_selected_mod(self):
+        modid = self.tree.selection()[0]
+        return self.modmap[modid] + (modid, )
+        
+    def create_tree_nodes(self, mod, parent="", seen_mods=[], is_required=False):
+        def is_mod(mod):
+            return hasattr(mod, "mod")
+        
+        tags = []
+        
+        if is_mod(mod):
+            mod_info = mod.mod.name
+        else:
+            mod_info = mod
+            tags.append("unknown")
+        
+        if len(seen_mods) > 0:
+            if is_required:
+                tags.append("required")
+            else:
+                tags.append("recommended")
+        else:
+            tags.append("source")
+            
+        modentry = self.tree.insert(parent, "end", text=mod_info, tags = tags)
+        self.modmap[modentry] = (mod, is_mod(mod))
+        
+        if is_required:
+            self.tree.set(modentry, "relation", "Required")
+            self.tree.set(modentry, "action", "Install")
+        else:
+            if len(seen_mods) > 0:
+                self.tree.set(modentry, "relation", "Recommended")
+                self.tree.set(modentry, "action", "Ignore")
+            else:
+                self.tree.set(modentry, "relation", "Main mod")
+                self.tree.set(modentry, "action", "Install")
+                
+        if is_mod(mod):
+            self.tree.set(modentry, "size", get_filesize_display(mod.mod.filesize))
+            self.tree.set(modentry, "source", mod.mod.service.name)
+            self.tree.set(modentry, "version", mod.mod.version)
+        else:
+            self.tree.set(modentry, "source", "< No source >")
+            self.tree.set(modentry, "action", "Ignore")
+            
         if len(seen_mods) < 1:
             self.tree.item(modentry, open=True)
         
         seen_mods = seen_mods[:]
-        seen_mods.append(mod.mod.name)
+        seen_mods.append(mod_info)
         
-        for submod in mod.dep_requires():
-            if submod.mod.name not in seen_mods:
-                self.create_tree_nodes(submod, modentry, seen_mods)
+        c = 0
+        r = 0
+        
+        if is_mod(mod):
+
+            for submod in mod.dep_requires():
+                if not is_mod(submod) or submod.mod.name not in seen_mods:
+                    c+= self.create_tree_nodes(submod, modentry, seen_mods, True)[0] +1
+            for submod in mod.dep_recommends():
+                if not is_mod(submod) or submod.mod.name not in seen_mods:
+                    r+= self.create_tree_nodes(submod, modentry, seen_mods, False)[1] +1
+        
+        self.tree.set(modentry, "subs", "%s  %s" % (c, r))
+        return c, r
         
 class ModuleInfo(BaseWindow):
     refresh_signals = ["mod_watch_changed", "mod_changed"]
@@ -658,7 +771,7 @@ class ModuleInfo(BaseWindow):
         
         bFrame = tK.Frame(frame)
         bFrame.pack(fill=tK.X)
-        dlbutton = tK.Button(bFrame, text="Download all required mods", command=self.start_download)
+        dlbutton = tK.Button(bFrame, text="Display and download mod requirements list", command=self.start_download)
         dlbutton.pack(fill=tK.X)
         
         if self.mod.mod.is_watched():
