@@ -115,7 +115,7 @@ class BaseWindow(object):
     def simple_window(self, master, title, height, width):
         master.title(title)
         master.minsize(width=width,  height=height)
-        frame = tK.Frame(master)
+        frame = tK.Frame(master, relief='flat', borderwidth=3)
         frame.pack(fill=tK.BOTH, expand=1)
         frame.focus()
         return frame
