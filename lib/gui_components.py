@@ -570,7 +570,8 @@ class DownloadModules(BaseWindow):
             m.download()
 
 class ModuleDependencyInfo(BaseWindow):
-    STATES = ("Install", "Ignore")
+    STATES = ("Install", "Skip")
+    
     def init(self, mod):
         self.mod = mod
         self.modmap = {}
@@ -607,6 +608,8 @@ class ModuleDependencyInfo(BaseWindow):
         self.f_showMod = tK.Button(bFrame, text="Show mod info", state=tK.DISABLED, command=self.button_open_modinfo)
         self.f_showMod.pack(side=tK.RIGHT)
         
+        tK.Button(bFrame, text="Download mods", command=self.button_download_mods).pack(side=tK.RIGHT)
+        
         self.f_description = tK.Label(frame, text="Click on a mod")
         self.f_description.pack(fill=tK.X)
         
@@ -614,46 +617,70 @@ class ModuleDependencyInfo(BaseWindow):
         
         self.create_tree_nodes(self.mod)
    
+    def button_download_mods(self):
+        l =  self.get_mod_list()
+        CALLBACK["downloadmod"](l)
+   
     def button_toggle_state(self):
-        mod, is_mod, modid = self.get_selected_mod()
+        mw = self.get_selected_mod()
         
-        info = self.tree.item(modid)
-        currstate = info["values"][2]
+        currstate = self.get_action_for_id(mw.modid)
         newstate = currstate == self.STATES[0] and self.STATES[1] or self.STATES[0]
-        self.tree.set(modid, "action", newstate)
+        self.tree.set(mw.modid, "action", newstate)
     
     def button_open_modinfo(self):
-        mod, is_mod, modid = self.get_selected_mod()
-        CALLBACK["showmod"](mod)
+        mw = self.get_selected_mod()
+        CALLBACK["showmod"](mw.mod)
+    
+    def get_action_for_id(self, mod_id):
+        info = self.tree.item(mod_id)
+        currstate = info["values"][2]
+        return currstate
+    
     
     def on_select(self, stuff):
-        mod, is_mod, modid = self.get_selected_mod()
+        mw = self.get_selected_mod()
+        self.f_title['text'] = mw.name
         
-        if is_mod:
+        if mw.is_mod:
             self.f_showMod.config(state=tK.NORMAL)
             self.f_toggleState.config(state=tK.NORMAL)
-            self.f_description['text'] = mod.mod.description
-            self.f_title['text'] = mod.mod.name
+            self.f_description['text'] = mw.mod.mod.description
         else:
             self.f_showMod.config(state=tK.DISABLED)
             self.f_toggleState.config(state=tK.DISABLED)
             self.f_description['text'] = "No information about this mod was found."
-            self.f_title['text'] = mod
     
     def get_selected_mod(self):
         modid = self.tree.selection()[0]
-        return self.modmap[modid] + (modid, )
+        return self.modmap[modid]
+    
+    def get_mod_list(self, start = None):
+        mods = set()
+        for x in self.tree.get_children(start):
+            if self.modmap[x].is_mod and self.get_action_for_id(x) == self.STATES[0]:
+                mods.add(self.modmap[x].mod)
+                mods.update(self.get_mod_list(x))
+        return mods
         
     def create_tree_nodes(self, mod, parent="", seen_mods=[], is_required=False):
+        
         def is_mod(mod):
             return hasattr(mod, "mod")
         
+        class ModWrap(object):
+            modid = None
+            
+            def __init__(self, mod):
+                self.mod = mod
+                self.is_mod = is_mod(mod)
+                self.name = self.is_mod and mod.mod.name or self.mod
+                
+        mw = ModWrap(mod)
+        
         tags = []
         
-        if is_mod(mod):
-            mod_info = mod.mod.name
-        else:
-            mod_info = mod
+        if not mw.is_mod:
             tags.append("unknown")
         
         if len(seen_mods) > 0:
@@ -664,8 +691,9 @@ class ModuleDependencyInfo(BaseWindow):
         else:
             tags.append("source")
             
-        modentry = self.tree.insert(parent, "end", text=mod_info, tags = tags)
-        self.modmap[modentry] = (mod, is_mod(mod))
+        modentry = self.tree.insert(parent, "end", text=mw.name, tags = tags)
+        mw.modid = modentry
+        self.modmap[modentry] = mw
         
         if is_required:
             self.tree.set(modentry, "relation", "Required")
@@ -678,7 +706,7 @@ class ModuleDependencyInfo(BaseWindow):
                 self.tree.set(modentry, "relation", "Main mod")
                 self.tree.set(modentry, "action", "Install")
                 
-        if is_mod(mod):
+        if mw.is_mod:
             self.tree.set(modentry, "size", get_filesize_display(mod.mod.filesize))
             self.tree.set(modentry, "source", mod.mod.service.name)
             self.tree.set(modentry, "version", mod.mod.version)
@@ -690,13 +718,12 @@ class ModuleDependencyInfo(BaseWindow):
             self.tree.item(modentry, open=True)
         
         seen_mods = seen_mods[:]
-        seen_mods.append(mod_info)
+        seen_mods.append(mw.name)
         
         c = 0
         r = 0
         
-        if is_mod(mod):
-
+        if mw.is_mod:
             for submod in mod.dep_requires():
                 if not is_mod(submod) or submod.mod.name not in seen_mods:
                     c+= self.create_tree_nodes(submod, modentry, seen_mods, True)[0] +1
